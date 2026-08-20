@@ -1,57 +1,90 @@
 # Mayfly WebShell
 
-一个基于 Go + WebSocket + xterm.js 的 Web 终端管理工具，专为无图形界面的 Linux 服务器设计。
+一个基于 **Go + Web** 的开源 WebShell 管理工具（网页版蚁剑/菜刀/冰蝎类工具），用于授权渗透测试与自有资产的管理。
+
+> ⚠️ **合规声明**：本工具仅用于**授权的安全测试、渗透测试**以及**管理自有资产**。请勿用于任何未授权访问，使用者需自行承担相应法律责任。
+
+## 核心架构
+
+```
+┌─ 管理端（Web 界面）──────┐          HTTP 请求          ┌─ 目标服务器 ────────┐
+│  节点管理 / 命令执行      │  ───────────────────────►   │  一句话 WebShell 脚本 │
+│  文件管理 / 数据库 / 终端  │  （base64 + JSON 协议）      │  shell.php / jsp /   │
+└─────────────────────────┘  ◄───────────────────────   │  aspx / asp          │
+                                                     └─────────────────────┘
+```
+
+- **管理端**：单一 Go 二进制 + 网页前端，浏览器访问，跨平台、易部署
+- **服务端脚本**：内置 4 种语言的功能型 WebShell（PHP / JSP / ASPX / ASP），通过「脚本生成器」一键生成
 
 ## 功能特性
 
-- **Web 终端** - 通过浏览器直接访问服务器终端，支持完整的交互式 Shell
-- **多会话管理** - 同时打开多个终端标签页，快速切换
-- **JWT 认证** - 安全的登录认证机制
-- **自适应窗口** - 终端大小随浏览器窗口自动调整
-- **多主题支持** - 深色 / 浅色 / Solarized 主题切换
-- **快捷键** - `Ctrl+Shift+T` 快速新建终端
-- **全屏模式** - 一键全屏终端
-- **现代 UI** - 暗色主题，简洁美观
+- **节点管理** - 多目标节点增删改查，按连接密码 / 语言类型区分
+- **命令执行** - 在目标服务器执行系统命令并回显结果
+- **文件管理** - 目录浏览、文件读取/编辑、上传、下载、删除、重命名、新建目录
+- **数据库管理** - 连接目标 MySQL 并执行 SQL（PHP 端，结果表格化展示）
+- **虚拟终端** - 基于命令执行的伪交互终端（xterm.js，维护工作目录）
+- **脚本生成器** - 一键生成/复制/下载 4 种语言的 WebShell 脚本，支持自定义连接密码
+- **JWT 认证** - 登录鉴权，节点数据本地持久化（JSON）
 
 ## 技术栈
 
 | 组件 | 技术 |
 |------|------|
-| 后端 | Go + Gin + gorilla/websocket + creack/pty |
+| 后端 | Go + Gin + gorilla/websocket |
 | 前端 | 原生 JS + xterm.js + FontAwesome |
 | 认证 | JWT (golang-jwt) |
+| 存储 | 本地 JSON 文件 |
 
 ## 快速开始
 
 ### 1. 编译
 
 ```bash
-# 在项目根目录执行
 go mod tidy
-go build -o mayfly
+go build -o mayfly .
 ```
+
+Windows 也可直接双击 `start.bat` 启动。
 
 ### 2. 运行
 
 ```bash
-# 使用默认配置运行 (端口 8080, 用户 admin/mayfly123)
+# 默认配置（端口 8080，账号 admin/mayfly123）
 ./mayfly
 
 # 自定义配置
-MAYFLY_PORT=9090 \
-MAYFLY_USER=myuser \
-MAYFLY_PASS=mypassword \
-MAYFLY_JWT_SECRET=my-secret \
-./mayfly
+MAYFLY_PORT=9090 MAYFLY_USER=myuser MAYFLY_PASS=mypassword ./mayfly
 ```
 
-### 3. 访问
+### 3. 使用流程
 
-浏览器打开 `http://<服务器IP>:8080`，输入用户名密码登录即可使用终端。
+1. 打开 `http://localhost:8080`，使用 `admin / mayfly123` 登录
+2. 点击侧边栏「脚本生成器」，选择语言生成 WebShell 脚本
+3. 将生成的脚本部署到目标 Web 服务器（Web 可访问目录）
+4. 回到节点列表，点击「+」添加节点，填写脚本 URL、语言类型、连接密码
+5. 选中节点后即可使用「命令执行 / 文件管理 / 数据库 / 虚拟终端」
+
+## 服务端脚本支持
+
+| 语言 | 文件 | 命令执行 | 文件管理 | 数据库 | 说明 |
+|------|------|:---:|:---:|:---:|------|
+| PHP  | `shell.php`  | ✅ | ✅ | ✅ MySQL | 最通用，PDO/mysqli |
+| JSP  | `shell.jsp`  | ✅ | ✅ | — | 依赖 JDK 内置 Nashorn（JDK 8~14） |
+| ASPX | `shell.aspx` | ✅ | ✅ | — | .NET 内置序列化，IIS |
+| ASP  | `shell.asp`  | ✅ | ✅ | — | VBScript + WScript.Shell，明文协议 |
+
+## 通信协议
+
+管理端与 WebShell 脚本之间的通信协议（非 ASP）：
+
+- **请求**：`POST` 到脚本 URL，表单字段 `<连接密码> = base64(json)`
+  - `json = {"action": "cmd|fileList|...", "params": {...}}`
+- **响应**：HTTP body = `base64(json)`，`json = {"status":"ok|error","data":"base64(结果)","message":""}`
+
+ASP 使用明文表单协议（VBScript 无 base64/JSON 能力）。
 
 ## 配置项
-
-所有配置通过环境变量设置：
 
 | 环境变量 | 默认值 | 说明 |
 |----------|--------|------|
@@ -59,111 +92,60 @@ MAYFLY_JWT_SECRET=my-secret \
 | `MAYFLY_USER` | admin | 登录用户名 |
 | `MAYFLY_PASS` | mayfly123 | 登录密码 |
 | `MAYFLY_JWT_SECRET` | mayfly-secret-key-change-in-production | JWT 签名密钥 |
-| `MAYFLY_SHELL` | bash | 默认 Shell |
-| `MAYFLY_SESSION_TIMEOUT` | 30 | 会话超时（分钟） |
 
 ## 项目结构
 
 ```
 Mayfly/
-├── main.go                     # 程序入口
+├── main.go                      # 程序入口，路由注册
 ├── go.mod
 ├── config/
-│   └── config.go               # 配置管理
+│   └── config.go                # 配置管理
+├── payloads/                    # WebShell 服务端脚本模板
+│   ├── shell.php
+│   ├── shell.jsp
+│   ├── shell.aspx
+│   └── shell.asp
 ├── internal/
 │   ├── handler/
-│   │   ├── auth.go             # 登录/JWT 处理
-│   │   └── terminal.go         # WebSocket 终端处理
+│   │   ├── auth.go              # 登录/JWT
+│   │   ├── node.go              # 节点 CRUD + 核心操作 API
+│   │   ├── terminal.go          # 本地 WebSSH 终端（保留）
+│   │   └── terminal_ws.go       # 虚拟终端 WebSocket
 │   ├── middleware/
-│   │   └── auth.go             # 认证中间件
+│   │   └── auth.go              # 认证中间件
 │   ├── model/
-│   │   └── session.go          # 会话模型
+│   │   ├── node.go              # 节点模型
+│   │   └── session.go
+│   ├── store/
+│   │   └── store.go             # 节点 JSON 持久化
 │   └── service/
-│       ├── pty.go              # PTY 管理
-│       └── session.go          # 会话服务
+│       ├── shell.go             # WebShell 客户端 + 协议编解码
+│       └── ...                  # session/terminal 服务
 └── web/
-    ├── index.html              # 终端主页面
-    ├── login.html              # 登录页面
+    ├── index.html               # 管理端主界面
+    ├── login.html               # 登录页
     └── static/
-        ├── css/
-        │   └── style.css       # 全局样式
-        └── js/
-            ├── app.js          # 终端页面逻辑
-            └── login.js        # 登录页面逻辑
-```
-
-## 部署建议
-
-### 使用 systemd 服务
-
-创建 `/etc/systemd/system/mayfly.service`：
-
-```ini
-[Unit]
-Description=Mayfly WebShell
-After=network.target
-
-[Service]
-Type=simple
-User=root
-WorkingDirectory=/opt/mayfly
-ExecStart=/opt/mayfly/mayfly
-Environment=MAYFLY_PORT=8080
-Environment=MAYFLY_USER=admin
-Environment=MAYFLY_PASS=your-strong-password
-Environment=MAYFLY_JWT_SECRET=your-random-secret
-Restart=always
-RestartSec=5
-
-[Install]
-WantedBy=multi-user.target
-```
-
-```bash
-sudo systemctl daemon-reload
-sudo systemctl enable mayfly
-sudo systemctl start mayfly
-```
-
-### 使用 Nginx 反向代理 + HTTPS
-
-```nginx
-server {
-    listen 443 ssl;
-    server_name shell.example.com;
-
-    ssl_certificate     /path/to/cert.pem;
-    ssl_certificate_key /path/to/key.pem;
-
-    location / {
-        proxy_pass http://127.0.0.1:8080;
-        proxy_http_version 1.1;
-        proxy_set_header Upgrade $http_upgrade;
-        proxy_set_header Connection "upgrade";
-        proxy_set_header Host $host;
-        proxy_set_header X-Real-IP $remote_addr;
-    }
-}
+        ├── css/style.css
+        └── js/{app.js, login.js}
 ```
 
 ## 安全注意事项
 
-1. **修改默认密码** - 务必通过环境变量修改默认用户名和密码
-2. **使用 HTTPS** - 生产环境建议配合 Nginx 使用 HTTPS，避免凭据明文传输
-3. **修改 JWT Secret** - 使用随机字符串作为 JWT 签名密钥
-4. **防火墙限制** - 仅开放必要端口，限制访问来源
-5. **最小权限** - 建议以非 root 用户运行（但需确保该用户有 shell 访问权限）
+1. **修改默认密码** - 务必通过环境变量修改登录账号与密码
+2. **使用 HTTPS** - 管理端建议配合 Nginx 使用 HTTPS
+3. **修改脚本连接密码** - 生成 WebShell 脚本时设置高强度连接密码，而非默认 `mayfly`
+4. **最小权限** - 管理端无需以 root 运行
+5. **合规使用** - 仅对已授权目标使用本工具
 
 ## 后续规划
 
-- [ ] 文件管理器（上传/下载/浏览）
-- [ ] 系统监控面板（CPU/内存/磁盘/网络）
-- [ ] SSH 远程连接管理
-- [ ] 终端录制与回放
-- [ ] 多用户支持与权限管理
-- [ ] 命令历史搜索
-- [ ] 自定义快捷键
-- [ ] Docker 部署支持
+- [ ] 数据库管理支持更多语言/类型（JSP JDBC、ASPX SQL Server）
+- [ ] 真 PTY 虚拟终端（持久进程 + 管道）
+- [ ] 通信加密（自定义编解码器，规避明文特征）
+- [ ] 批量命令/文件分片下载（大文件）
+- [ ] 系统信息面板（CPU/内存/进程列表）
+- [ ] 节点分组与搜索
 
 ## License
 

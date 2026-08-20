@@ -143,9 +143,12 @@ func (h *TerminalHandler) ListSessions(c *gin.Context) {
 
 // sendMessage 发送 WebSocket 消息
 func (h *TerminalHandler) sendMessage(conn *websocket.Conn, msgType string, data string) {
+	// 用 json.Marshal 正确转义字符串，避免终端输出中的控制字符（ESC、引号、反斜杠等）
+	// 破坏 JSON 结构导致前端解析失败
+	dataJSON, _ := json.Marshal(data)
 	msg := WSMessage{
 		Type: msgType,
-		Data: json.RawMessage(`"` + data + `"`),
+		Data: json.RawMessage(dataJSON),
 	}
 	conn.WriteJSON(msg)
 }

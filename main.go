@@ -10,6 +10,7 @@ import (
 	"mayfly/internal/handler"
 	"mayfly/internal/middleware"
 	"mayfly/internal/service"
+	"mayfly/internal/store"
 
 	"github.com/gin-gonic/gin"
 )
@@ -24,6 +25,14 @@ func main() {
 	if os.Getenv("GIN_MODE") == "" {
 		gin.SetMode(gin.ReleaseMode)
 	}
+
+	// 初始化节点存储
+	nodeStore, err := store.New("data/nodes.json")
+	if err != nil {
+		log.Fatalf("初始化节点存储失败: %v", err)
+	}
+	nodeHandler := handler.NewNodeHandler(nodeStore)
+	termWSHandler := handler.NewTerminalWSHandler(nodeStore)
 
 	r := gin.Default()
 
@@ -43,7 +52,7 @@ func main() {
 	r.StaticFile("/login", "./web/login.html")
 	r.StaticFile("/", "./web/index.html")
 
-	// API 路由
+	// 公开 API
 	api := r.Group("/api")
 	{
 		api.POST("/login", handler.Login)
@@ -53,17 +62,42 @@ func main() {
 	authAPI := r.Group("/api")
 	authAPI.Use(middleware.Auth())
 	{
-		// 终端 WebSocket
+		// 本地 WebSSH 终端（保留原有能力）
 		termHandler := handler.NewTerminalHandler(service.NewSessionService())
 		authAPI.GET("/terminal", termHandler.HandleTerminal)
 		authAPI.GET("/sessions", termHandler.ListSessions)
+
+		// 节点管理
+		authAPI.GET("/nodes", nodeHandler.ListNodes)
+		authAPI.POST("/nodes", nodeHandler.CreateNode)
+		authAPI.PUT("/nodes/:id", nodeHandler.UpdateNode)
+		authAPI.DELETE("/nodes/:id", nodeHandler.DeleteNode)
+
+		// 脚本生成器
+		authAPI.GET("/scripts/:lang", nodeHandler.GetScript)
+
+		// 节点相关操作（自动解析 :id 并加载节点）
+		nodeGroup := authAPI.Group("/nodes/:id")
+		nodeGroup.Use(handler.NodeParam(nodeStore))
+		{
+			nodeGroup.POST("/test", nodeHandler.TestNode)
+			nodeGroup.POST("/cmd", nodeHandler.ExecCmd)
+			nodeGroup.POST("/file/list", nodeHandler.ListDir)
+			nodeGroup.POST("/file/read", nodeHandler.ReadFile)
+			nodeGroup.POST("/file/write", nodeHandler.WriteFile)
+			nodeGroup.POST("/file/delete", nodeHandler.DeletePath)
+			nodeGroup.POST("/file/rename", nodeHandler.RenamePath)
+			nodeGroup.POST("/file/mkdir", nodeHandler.Mkdir)
+			nodeGroup.POST("/db", nodeHandler.DBQuery)
+			nodeGroup.GET("/terminal", termWSHandler.Handle)
+		}
 	}
 
 	// 启动服务器
 	addr := fmt.Sprintf(":%s", cfg.ServerPort)
-	log.Printf("Mayfly WebShell 启动于 http://0.0.0.0:%s", cfg.ServerPort)
-	log.Printf("默认用户: %s (请通过环境变量 MAYFLY_USER/MAYFLY_PASS 修改)", cfg.Username)
-	log.Printf("WebSocket 终端: ws://0.0.0.0:%s/api/terminal?token=<JWT>", cfg.ServerPort)
+	log.Printf("Mayfly WebShell 管理器启动于 http://0.0.0.0:%s", cfg.ServerPort)
+	log.Printf("默认账号: %s（可通过 MAYFLY_USER / MAYFLY_PASS 修改）", cfg.Username)
+	log.Printf("节点数据存储: data/nodes.json")
 
 	if err := r.Run(addr); err != nil {
 		log.Fatalf("服务器启动失败: %v", err)

