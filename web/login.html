@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mayfly WebShell - 登录</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+</head>
+<body class="login-body">
+    <div class="login-container">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="logo">
+                    <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                        <rect width="48" height="48" rx="12" fill="#6366f1"/>
+                        <path d="M16 18L22 24L16 30" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M26 30H32" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h1>Mayfly WebShell</h1>
+                <p class="subtitle">Web 终端管理系统</p>
+            </div>
+            <form id="loginForm" class="login-form">
+                <div class="form-group">
+                    <label for="username">用户名</label>
+                    <input type="text" id="username" name="username" placeholder="请输入用户名" autocomplete="username" required>
+                </div>
+                <div class="form-group">
+                    <label for="password">密码</label>
+                    <input type="password" id="password" name="password" placeholder="请输入密码" autocomplete="current-password" required>
+                </div>
+                <div id="errorMsg" class="error-msg" style="display:none;"></div>
+                <button type="submit" class="btn-primary" id="loginBtn">
+                    <span class="btn-text">登 录</span>
+                    <span class="btn-loading" style="display:none;">
+                        <span class="spinner"></span>
+                    </span>
+                </button>
+            </form>
+        </div>
+        <p class="login-footer">Mayfly WebShell v0.1.0</p>
+    </div>
+    <script src="/static/js/login.js"></script>
+</body>
+</html>

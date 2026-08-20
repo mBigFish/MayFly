@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mayfly WebShell</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+</head>
+<body class="app-body">
+    <div class="app-layout">
+        <!-- 侧边栏 -->
+        <aside class="sidebar" id="sidebar">
+            <div class="sidebar-header">
+                <div class="logo-mini">
+                    <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
+                        <rect width="48" height="48" rx="12" fill="#6366f1"/>
+                        <path d="M16 18L22 24L16 30" stroke="white" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M26 30H32" stroke="white" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <span class="sidebar-title">Mayfly</span>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    <span>终端会话</span>
+                    <button class="btn-icon" id="newTerminalBtn" title="新建终端">
+                        <i class="fas fa-plus"></i>
+                    </button>
+                </div>
+                <div class="terminal-list" id="terminalList">
+                    <!-- 终端标签动态生成 -->
+                </div>
+            </div>
+
+            <div class="sidebar-section">
+                <div class="sidebar-section-header">
+                    <span>系统信息</span>
+                </div>
+                <div class="sys-info" id="sysInfo">
+                    <div class="sys-info-item">
+                        <i class="fas fa-server"></i>
+                        <span id="hostname">加载中...</span>
+                    </div>
+                    <div class="sys-info-item">
+                        <i class="fas fa-microchip"></i>
+                        <span id="cpuInfo">-</span>
+                    </div>
+                    <div class="sys-info-item">
+                        <i class="fas fa-memory"></i>
+                        <span id="memInfo">-</span>
+                    </div>
+                    <div class="sys-info-item">
+                        <i class="fas fa-clock"></i>
+                        <span id="uptime">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="sidebar-footer">
+                <div class="user-info">
+                    <i class="fas fa-user-circle"></i>
+                    <span id="currentUser">admin</span>
+                </div>
+                <button class="btn-icon" id="logoutBtn" title="退出登录">
+                    <i class="fas fa-sign-out-alt"></i>
+                </button>
+            </div>
+        </aside>
+
+        <!-- 主内容区 -->
+        <main class="main-content">
+            <div class="toolbar">
+                <button class="btn-icon sidebar-toggle" id="sidebarToggle" title="切换侧边栏">
+                    <i class="fas fa-bars"></i>
+                </button>
+                <div class="toolbar-title" id="toolbarTitle">终端 1</div>
+                <div class="toolbar-actions">
+                    <button class="btn-icon" id="fullscreenBtn" title="全屏">
+                        <i class="fas fa-expand"></i>
+                    </button>
+                    <button class="btn-icon" id="clearBtn" title="清屏">
+                        <i class="fas fa-eraser"></i>
+                    </button>
+                    <button class="btn-icon" id="settingsBtn" title="设置">
+                        <i class="fas fa-cog"></i>
+                    </button>
+                </div>
+            </div>
+            <div class="terminal-container" id="terminalContainer">
+                <!-- 终端实例动态生成 -->
+            </div>
+        </main>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div class="modal-overlay" id="settingsModal" style="display:none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h2>终端设置</h2>
+                <button class="btn-icon" onclick="document.getElementById('settingsModal').style.display='none'">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>字体大小</label>
+                    <input type="range" id="fontSizeSlider" min="10" max="28" value="14">
+                    <span id="fontSizeValue">14px</span>
+                </div>
+                <div class="form-group">
+                    <label>主题</label>
+                    <select id="themeSelect">
+                        <option value="dark">深色</option>
+                        <option value="light">浅色</option>
+                        <option value="solarized">Solarized</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>
+                        <input type="checkbox" id="cursorBlink" checked>
+                        光标闪烁
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="document.getElementById('settingsModal').style.display='none'">取消</button>
+                <button class="btn-primary" id="saveSettingsBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-web-links@0.11.0/lib/addon-web-links.min.js"></script>
+    <script src="/static/js/app.js"></script>
+</body>
+</html>
