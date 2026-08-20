@@ -3,248 +3,248 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mayfly WebShell 管理器</title>
+    <title>Mayfly - WebShell 管理</title>
     <link rel="stylesheet" href="/static/css/style.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/css/xterm.min.css">
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.5.1/css/all.min.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/xterm-addon-fit@0.8.0/lib/xterm-addon-fit.min.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/xterm@5.3.0/css/xterm.css">
 </head>
-<body class="app-body">
-    <div class="app-layout">
+<body>
+    <div id="app">
         <!-- 侧边栏 -->
-        <aside class="sidebar" id="sidebar">
+        <aside class="sidebar">
             <div class="sidebar-header">
-                <div class="logo-mini">
-                    <svg width="32" height="32" viewBox="0 0 48 48" fill="none">
-                        <rect width="48" height="48" rx="12" fill="#6366f1"/>
-                        <path d="M12 32L24 10L36 32" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
-                        <path d="M18 32H30" stroke="white" stroke-width="3" stroke-linecap="round"/>
-                    </svg>
+                <div class="sidebar-logo">
+                    <i class="fas fa-dragon"></i>
                 </div>
                 <span class="sidebar-title">Mayfly</span>
             </div>
-
-            <div class="sidebar-section">
-                <div class="sidebar-section-header">
-                    <span>目标节点</span>
-                    <button class="btn-icon" id="addNodeBtn" title="添加节点">
-                        <i class="fas fa-plus"></i>
-                    </button>
+            <nav class="sidebar-nav">
+                <div class="nav-item active" data-tab="file">
+                    <i class="fas fa-folder-open"></i>
+                    <span>文件管理</span>
                 </div>
-                <div class="node-list" id="nodeList"></div>
-            </div>
-
-            <div class="sidebar-footer">
-                <button class="btn-secondary btn-block" id="genScriptBtn">
-                    <i class="fas fa-file-code"></i> 脚本生成器
-                </button>
-                <div class="user-info">
-                    <i class="fas fa-user-circle"></i>
-                    <span id="currentUser">admin</span>
-                    <button class="btn-icon" id="logoutBtn" title="退出登录">
-                        <i class="fas fa-sign-out-alt"></i>
-                    </button>
+                <div class="nav-item" data-tab="cmd">
+                    <i class="fas fa-terminal"></i>
+                    <span>命令执行</span>
                 </div>
-            </div>
+                <div class="nav-item" data-tab="terminal">
+                    <i class="fas fa-desktop"></i>
+                    <span>交互终端</span>
+                </div>
+                <div class="nav-item" data-tab="db">
+                    <i class="fas fa-database"></i>
+                    <span>数据库</span>
+                </div>
+            </nav>
         </aside>
 
-        <!-- 主内容区 -->
+        <!-- 主内容 -->
         <main class="main-content">
-            <div class="toolbar">
-                <button class="btn-icon sidebar-toggle" id="sidebarToggle" title="切换侧边栏">
-                    <i class="fas fa-bars"></i>
-                </button>
-                <div class="node-title" id="currentNodeTitle">
-                    <span class="muted">未选择节点</span>
+            <header class="top-header">
+                <div class="header-left">
+                    <span class="breadcrumb">节点列表 / <span id="currentNodeTitle"><span class="muted">未选择节点</span></span></span>
                 </div>
-                <div class="toolbar-actions">
-                    <button class="btn-ghost" id="testNodeBtn" title="测试当前节点连接">
-                        <i class="fas fa-plug"></i> 测试连接
-                    </button>
-                    <button class="btn-icon" id="editNodeBtn" title="编辑节点"><i class="fas fa-pen"></i></button>
-                    <button class="btn-icon" id="deleteNodeBtn" title="删除节点"><i class="fas fa-trash"></i></button>
+                <div class="header-right">
+                    <button class="btn btn-primary" id="addNodeBtn"><i class="fas fa-plus"></i> 添加节点</button>
+                    <button class="btn btn-secondary" id="connectBtn"><i class="fas fa-plug"></i> 连接测试</button>
+                    <button class="btn btn-danger" id="deleteNodeBtn"><i class="fas fa-trash"></i> 删除</button>
+                    <div class="user-info">
+                        <i class="fas fa-user-circle"></i>
+                        <span id="username">admin</span>
+                    </div>
+                    <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> 退出</button>
                 </div>
-            </div>
+            </header>
 
-            <div class="tabs" id="tabs">
-                <button class="tab active" data-tab="cmd"><i class="fas fa-terminal"></i> 命令执行</button>
-                <button class="tab" data-tab="file"><i class="fas fa-folder"></i> 文件管理</button>
-                <button class="tab" data-tab="db"><i class="fas fa-database"></i> 数据库</button>
-                <button class="tab" data-tab="terminal"><i class="fas fa-desktop"></i> 虚拟终端</button>
-            </div>
-
-            <div class="tab-panels">
-                <!-- 命令执行 -->
-                <div class="tab-panel active" id="panel-cmd">
-                    <div class="cmd-bar">
-                        <input type="text" id="cmdInput" placeholder="输入要执行的命令，回车执行..." autocomplete="off">
-                        <button class="btn-primary" id="cmdRunBtn"><i class="fas fa-play"></i> 执行</button>
-                        <button class="btn-ghost" id="cmdClearBtn"><i class="fas fa-eraser"></i> 清空</button>
-                    </div>
-                    <pre class="cmd-output" id="cmdOutput"></pre>
-                </div>
-
-                <!-- 文件管理 -->
-                <div class="tab-panel" id="panel-file">
-                    <div class="file-toolbar">
-                        <button class="btn-ghost" id="fileUpBtn" title="上一级"><i class="fas fa-arrow-up"></i></button>
-                        <input type="text" id="filePath" placeholder="目录路径" autocomplete="off">
-                        <button class="btn-ghost" id="fileGoBtn">跳转</button>
-                        <button class="btn-ghost" id="fileRefreshBtn"><i class="fas fa-sync"></i> 刷新</button>
-                        <span class="spacer"></span>
-                        <button class="btn-ghost" id="fileMkdirBtn"><i class="fas fa-folder-plus"></i> 新建目录</button>
-                        <button class="btn-ghost" id="fileUploadBtn"><i class="fas fa-upload"></i> 上传</button>
-                        <input type="file" id="fileUploadInput" multiple hidden>
-                    </div>
-                    <div class="file-table-wrap">
-                        <table class="file-table">
-                            <thead>
-                                <tr><th>名称</th><th>类型</th><th>大小</th><th>修改时间</th><th>操作</th></tr>
-                            </thead>
-                            <tbody id="fileTableBody"></tbody>
-                        </table>
-                    </div>
-                    <div class="file-editor" id="fileEditor" style="display:none;">
-                        <div class="file-editor-header">
-                            <span class="file-editor-path" id="fileEditorPath"></span>
-                            <span class="spacer"></span>
-                            <button class="btn-ghost" id="fileEditorDownload"><i class="fas fa-download"></i> 下载</button>
-                            <button class="btn-primary" id="fileEditorSave"><i class="fas fa-save"></i> 保存</button>
-                            <button class="btn-ghost" id="fileEditorClose"><i class="fas fa-times"></i> 关闭</button>
+            <div class="content-area">
+                <!-- 节点卡片区域 -->
+                <div class="stats-grid" id="nodeStats">
+                    <div class="stat-card">
+                        <div class="stat-icon blue"><i class="fas fa-server"></i></div>
+                        <div class="stat-info">
+                            <h3>节点总数</h3>
+                            <div class="stat-value" id="statTotal">0</div>
                         </div>
-                        <textarea id="fileEditorContent" class="file-editor-content" spellcheck="false"></textarea>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
+                        <div class="stat-info">
+                            <h3>已连接</h3>
+                            <div class="stat-value" id="statConnected">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange"><i class="fas fa-globe"></i></div>
+                        <div class="stat-info">
+                            <h3>PHP 节点</h3>
+                            <div class="stat-value" id="statPhp">0</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red"><i class="fas fa-bug"></i></div>
+                        <div class="stat-info">
+                            <h3>JSP/ASP 节点</h3>
+                            <div class="stat-value" id="statOther">0</div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 数据库 -->
-                <div class="tab-panel" id="panel-db">
-                    <div class="db-form">
-                        <select id="dbType">
-                            <option value="mysql">MySQL</option>
-                        </select>
-                        <input type="text" id="dbHost" placeholder="主机" value="127.0.0.1">
-                        <input type="text" id="dbPort" placeholder="端口" value="3306">
-                        <input type="text" id="dbUser" placeholder="用户名" value="root">
-                        <input type="password" id="dbPass" placeholder="密码">
-                        <input type="text" id="dbName" placeholder="数据库名">
+                <div class="card-grid">
+                    <!-- 节点列表 -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-list"></i> 节点列表</h3>
+                            <div class="search-box">
+                                <i class="fas fa-search"></i>
+                                <input type="text" id="nodeSearch" placeholder="搜索节点...">
+                            </div>
+                        </div>
+                        <div class="card-body">
+                            <div id="nodeList" class="node-list">
+                                <div class="empty-state">
+                                    <i class="fas fa-inbox"></i>
+                                    <p>暂无节点，点击右上角添加</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="db-sql-bar">
-                        <textarea id="dbSql" placeholder="输入 SQL 语句，如 SELECT * FROM users LIMIT 20" spellcheck="false"></textarea>
-                        <button class="btn-primary" id="dbRunBtn"><i class="fas fa-play"></i> 执行</button>
-                    </div>
-                    <div class="db-result-wrap">
-                        <div id="dbResultMsg" class="db-result-msg"></div>
-                        <table class="db-result-table" id="dbResultTable" style="display:none;"></table>
+
+                    <!-- 功能面板 -->
+                    <div class="card" style="grid-column: span 1; min-width: 0;">
+                        <div class="card-header">
+                            <h3><i class="fas fa-cogs"></i> 功能面板</h3>
+                        </div>
+                        <div class="card-body" style="padding: 0;">
+                            <div id="panel-file" class="tab-panel active">
+                                <div class="panel-toolbar">
+                                    <input type="text" id="filePath" class="form-control" value="" placeholder="当前路径">
+                                    <button class="btn btn-primary btn-sm" id="fileRefreshBtn"><i class="fas fa-sync-alt"></i> 刷新</button>
+                                    <button class="btn btn-secondary btn-sm" id="fileUpBtn"><i class="fas fa-level-up-alt"></i> 上级</button>
+                                    <button class="btn btn-secondary btn-sm" id="fileNewFolderBtn"><i class="fas fa-folder-plus"></i> 新建目录</button>
+                                    <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0;">
+                                        <i class="fas fa-upload"></i> 上传
+                                        <input type="file" id="fileUploadInput" class="hidden">
+                                    </label>
+                                </div>
+                                <table class="data-table">
+                                    <thead>
+                                        <tr><th>名称</th><th>类型</th><th>大小</th><th>修改时间</th><th>操作</th></tr>
+                                    </thead>
+                                    <tbody id="fileTableBody"></tbody>
+                                </table>
+                            </div>
+                            <div id="panel-cmd" class="tab-panel">
+                                <div class="shell-output" id="cmdOutput" style="height: 320px; border-radius: 0;"></div>
+                                <div class="shell-input-line">
+                                    <span class="shell-prompt">$</span>
+                                    <input type="text" id="cmdInput" class="shell-input" placeholder="输入命令，按回车执行">
+                                </div>
+                            </div>
+                            <div id="panel-terminal" class="tab-panel">
+                                <div id="terminalWrap" style="height: 380px; background: #1e1e1e;"></div>
+                            </div>
+                            <div id="panel-db" class="tab-panel">
+                                <div class="panel-toolbar" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
+                                    <input type="text" id="dbHost" class="form-control" placeholder="数据库主机" value="127.0.0.1">
+                                    <input type="text" id="dbPort" class="form-control" placeholder="端口" value="3306" style="width: 80px;">
+                                    <input type="text" id="dbUser" class="form-control" placeholder="用户名">
+                                    <input type="password" id="dbPass" class="form-control" placeholder="密码">
+                                    <input type="text" id="dbName" class="form-control" placeholder="数据库名">
+                                    <button class="btn btn-primary btn-sm" id="dbConnectBtn"><i class="fas fa-plug"></i> 连接</button>
+                                </div>
+                                <div style="padding: 16px 20px;">
+                                    <textarea id="dbSql" class="form-control" rows="4" placeholder="输入 SQL 语句"></textarea>
+                                    <div style="margin-top: 10px; text-align: right;">
+                                        <button class="btn btn-primary btn-sm" id="dbRunBtn"><i class="fas fa-play"></i> 执行</button>
+                                    </div>
+                                    <div id="dbResultMsg" style="margin-top: 12px; color: var(--text-secondary);"></div>
+                                    <div id="dbResultTable" style="display:none; overflow-x: auto; margin-top: 12px;">
+                                        <table class="data-table"><thead id="dbResultHead"></thead><tbody id="dbResultBody"></tbody></table>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
-                <!-- 虚拟终端 -->
-                <div class="tab-panel" id="panel-terminal">
-                    <div class="terminal-container" id="terminalContainer"></div>
+                <!-- 文件编辑器 -->
+                <div id="fileEditor" class="card hidden" style="margin-top: 20px;">
+                    <div class="card-header">
+                        <h3><i class="fas fa-edit"></i> 文件编辑</h3>
+                        <button class="btn btn-secondary btn-sm" id="closeEditorBtn"><i class="fas fa-times"></i> 关闭</button>
+                    </div>
+                    <div class="card-body">
+                        <div style="margin-bottom: 10px; color: var(--text-secondary); font-size: 13px;"><i class="fas fa-file-code"></i> <span id="editorPath"></span></div>
+                        <textarea id="editorContent" class="form-control" rows="16"></textarea>
+                        <div style="margin-top: 12px; text-align: right;">
+                            <button class="btn btn-primary" id="saveFileBtn"><i class="fas fa-save"></i> 保存</button>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>
     </div>
 
-    <!-- 节点弹窗 -->
-    <div class="modal-overlay" id="nodeModal" style="display:none;">
+    <!-- 节点模态框 -->
+    <div id="nodeModal" class="modal-overlay" style="display: none;">
         <div class="modal">
             <div class="modal-header">
-                <h2 id="nodeModalTitle">添加节点</h2>
-                <button class="btn-icon" onclick="closeModal('nodeModal')"><i class="fas fa-times"></i></button>
+                <h3 id="nodeModalTitle">添加节点</h3>
+                <button class="modal-close" onclick="closeModal('nodeModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <div class="form-group">
+                <div class="form-row">
                     <label>节点名称</label>
-                    <input type="text" id="nodeName" placeholder="例如：测试服务器">
-                </div>
-                <div class="form-group">
-                    <label>WebShell URL</label>
-                    <input type="text" id="nodeURL" placeholder="http://target/shell.php">
+                    <input type="text" id="nodeName" class="form-control" placeholder="例如：测试服务器">
                 </div>
                 <div class="form-row">
-                    <div class="form-group">
-                        <label>脚本类型</label>
-                        <select id="nodeType">
-                            <option value="php">PHP</option>
-                            <option value="jsp">JSP</option>
-                            <option value="aspx">ASPX</option>
-                            <option value="asp">ASP</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>连接密码</label>
-                        <input type="text" id="nodePass" placeholder="默认 mayfly">
-                    </div>
+                    <label>URL 地址</label>
+                    <input type="text" id="nodeURL" class="form-control" placeholder="http://target.com/shell.php">
                 </div>
-                <div class="form-group">
+                <div class="form-row">
+                    <label>类型</label>
+                    <select id="nodeType" class="form-control">
+                        <option value="php">PHP</option>
+                        <option value="jsp">JSP</option>
+                        <option value="aspx">ASPX</option>
+                        <option value="asp">ASP</option>
+                    </select>
+                </div>
+                <div class="form-row">
+                    <label>连接密码</label>
+                    <input type="text" id="nodePass" class="form-control" placeholder="默认 mayfly">
+                </div>
+                <div class="form-row">
                     <label>备注</label>
-                    <input type="text" id="nodeRemark" placeholder="可选">
+                    <textarea id="nodeRemark" class="form-control" placeholder="备注信息"></textarea>
                 </div>
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeModal('nodeModal')">取消</button>
-                <button class="btn-primary" id="saveNodeBtn">保存</button>
+                <button class="btn btn-secondary" onclick="closeModal('nodeModal')">取消</button>
+                <button class="btn btn-primary" id="saveNodeBtn">保存</button>
             </div>
         </div>
     </div>
 
-    <!-- 脚本生成器弹窗 -->
-    <div class="modal-overlay" id="scriptModal" style="display:none;">
-        <div class="modal modal-large">
+    <!-- 提示模态框 -->
+    <div id="promptModal" class="modal-overlay" style="display: none;">
+        <div class="modal">
             <div class="modal-header">
-                <h2>WebShell 脚本生成器</h2>
-                <button class="btn-icon" onclick="closeModal('scriptModal')"><i class="fas fa-times"></i></button>
+                <h3 id="promptTitle">输入</h3>
+                <button class="modal-close" onclick="closeModal('promptModal')"><i class="fas fa-times"></i></button>
             </div>
             <div class="modal-body">
-                <div class="form-row">
-                    <div class="form-group">
-                        <label>脚本类型</label>
-                        <select id="scriptType">
-                            <option value="php">PHP (.php)</option>
-                            <option value="jsp">JSP (.jsp)</option>
-                            <option value="aspx">ASPX (.aspx)</option>
-                            <option value="asp">ASP (.asp)</option>
-                        </select>
-                    </div>
-                    <div class="form-group">
-                        <label>连接密码</label>
-                        <input type="text" id="scriptPass" placeholder="默认 mayfly">
-                    </div>
-                </div>
-                <div class="form-group">
-                    <label>脚本内容</label>
-                    <textarea id="scriptContent" class="script-content" readonly spellcheck="false"></textarea>
-                </div>
+                <input type="text" id="promptInput" class="form-control" placeholder="">
             </div>
             <div class="modal-footer">
-                <button class="btn-secondary" id="scriptGenBtn">生成</button>
-                <button class="btn-secondary" id="scriptCopyBtn"><i class="fas fa-copy"></i> 复制</button>
-                <button class="btn-primary" id="scriptDownloadBtn"><i class="fas fa-download"></i> 下载</button>
+                <button class="btn btn-secondary" onclick="closeModal('promptModal')">取消</button>
+                <button class="btn btn-primary" id="promptOkBtn">确定</button>
             </div>
         </div>
     </div>
 
-    <!-- 提示弹窗 -->
-    <div class="modal-overlay" id="promptModal" style="display:none;">
-        <div class="modal modal-small">
-            <div class="modal-header">
-                <h2 id="promptTitle">输入</h2>
-                <button class="btn-icon" onclick="closeModal('promptModal')"><i class="fas fa-times"></i></button>
-            </div>
-            <div class="modal-body">
-                <div class="form-group">
-                    <input type="text" id="promptInput" placeholder="">
-                </div>
-            </div>
-            <div class="modal-footer">
-                <button class="btn-secondary" onclick="closeModal('promptModal')">取消</button>
-                <button class="btn-primary" id="promptOkBtn">确定</button>
-            </div>
-        </div>
-    </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/@xterm/xterm@5.5.0/lib/xterm.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/@xterm/addon-fit@0.10.0/lib/addon-fit.min.js"></script>
     <script src="/static/js/app.js"></script>
 </body>
 </html>

@@ -5,7 +5,7 @@ const state = {
     user: localStorage.getItem('mayfly_user') || 'admin',
     nodes: [],
     currentNode: null,
-    currentTab: 'cmd',
+    currentTab: 'file',
     filePath: '',
     editingFile: null,
     terms: {},
@@ -29,13 +29,17 @@ function api(method, path, body) {
 
 function toast(msg, type) {
     let wrap = document.getElementById('toastWrap');
-    if (!wrap) { wrap = document.createElement('div'); wrap.id = 'toastWrap'; document.body.appendChild(wrap); }
+    if (!wrap) {
+        wrap = document.createElement('div');
+        wrap.className = 'toast-container';
+        wrap.id = 'toastWrap';
+        document.body.appendChild(wrap);
+    }
     const t = document.createElement('div');
     t.className = 'toast ' + (type || 'info');
-    t.textContent = msg;
+    t.innerHTML = '<i class="fas ' + (type === 'error' ? 'fa-times-circle' : type === 'success' ? 'fa-check-circle' : type === 'warning' ? 'fa-exclamation-circle' : 'fa-info-circle') + '"></i><span>' + escapeHtml(msg) + '</span>';
     wrap.appendChild(t);
-    setTimeout(() => t.classList.add('show'), 10);
-    setTimeout(() => { t.classList.remove('show'); setTimeout(() => t.remove(), 300); }, 2600);
+    setTimeout(() => t.remove(), 2600);
 }
 
 function logout(expired) {
@@ -127,16 +131,30 @@ async function loadNodes() {
     const r = await api('GET', '/nodes');
     state.nodes = r.data.nodes || [];
     renderNodeList();
+    updateStats();
+}
+
+function updateStats() {
+    const total = state.nodes.length;
+    const connected = 0; // 后端暂无实时状态，保持为0或按需扩展
+    const php = state.nodes.filter((n) => n.type === 'php').length;
+    const other = total - php;
+    document.getElementById('statTotal').textContent = total;
+    document.getElementById('statConnected').textContent = connected;
+    document.getElementById('statPhp').textContent = php;
+    document.getElementById('statOther').textContent = other;
 }
 
 function renderNodeList() {
     const list = document.getElementById('nodeList');
+    const q = document.getElementById('nodeSearch')?.value?.trim()?.toLowerCase() || '';
     list.innerHTML = '';
-    if (state.nodes.length === 0) {
-        list.innerHTML = '<div class="empty-tip">暂无节点<br>点击右上角 + 添加</div>';
+    const nodes = q ? state.nodes.filter((n) => n.name.toLowerCase().includes(q) || n.url.toLowerCase().includes(q)) : state.nodes;
+    if (nodes.length === 0) {
+        list.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>' + (state.nodes.length ? '无匹配节点' : '暂无节点，点击右上角添加') + '</p></div>';
         return;
     }
-    state.nodes.forEach((n) => {
+    nodes.forEach((n) => {
         const item = document.createElement('div');
         item.className = 'node-item' + (state.currentNode && state.currentNode.id === n.id ? ' active' : '');
         const dot = document.createElement('span');
@@ -163,7 +181,7 @@ function selectNode(node) {
     state.currentNode = node;
     state.filePath = '';
     state.editingFile = null;
-    document.getElementById('fileEditor').style.display = 'none';
+    document.getElementById('fileEditor').classList.add('hidden');
     document.getElementById('currentNodeTitle').innerHTML =
         '<span class="type-badge type-' + node.type + '">' + node.type.toUpperCase() + '</span> ' + escapeHtml(node.name);
     renderNodeList();
@@ -231,11 +249,12 @@ async function deleteNode() {
 async function testNode() {
     const n = state.currentNode;
     if (!n) { toast('请先选择节点', 'error'); return; }
-    toast('正在测试...', 'info');
+    toast('正在测试连接...', 'info');
     const r = await api('POST', '/nodes/' + n.id + '/test', {});
     if (r.data.ok) {
         toast('连接成功', 'success');
         document.getElementById('cmdOutput').textContent = r.data.info || '';
+        switchTab('cmd');
     } else {
         toast('连接失败: ' + r.data.message, 'error');
     }
@@ -244,7 +263,7 @@ async function testNode() {
 // ===== 标签页 =====
 function switchTab(tab) {
     state.currentTab = tab;
-    document.querySelectorAll('.tab').forEach((t) => t.classList.toggle('active', t.dataset.tab === tab));
+    document.querySelectorAll('.nav-item').forEach((t) => t.classList.toggle('active', t.dataset.tab === tab));
     document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
     document.getElementById('panel-' + tab).classList.add('active');
     updatePanelsForNode();
@@ -338,20 +357,20 @@ async function openFile(name) {
     const r = await api('POST', '/nodes/' + n.id + '/file/read', { path });
     if (r.data.error) { toast(r.data.error, 'error'); return; }
     state.editingFile = { path, base64: r.data.content };
-    document.getElementById('fileEditor').style.display = 'flex';
-    document.getElementById('fileEditorPath').textContent = path;
+    document.getElementById('fileEditor').classList.remove('hidden');
+    document.getElementById('editorPath').textContent = path;
     try {
         const text = new TextDecoder('utf-8', { fatal: false }).decode(base64ToBytes(r.data.content));
-        document.getElementById('fileEditorContent').value = text;
+        document.getElementById('editorContent').value = text;
     } catch (e) {
-        document.getElementById('fileEditorContent').value = '';
+        document.getElementById('editorContent').value = '';
         toast('二进制文件，无法直接编辑，可下载', 'info');
     }
 }
 
 async function saveFile() {
     if (!state.editingFile) return;
-    const text = document.getElementById('fileEditorContent').value;
+    const text = document.getElementById('editorContent').value;
     const b64 = btoa(unescape(encodeURIComponent(text)));
     const r = await api('POST', '/nodes/' + state.currentNode.id + '/file/write', { path: state.editingFile.path, content: b64 });
     if (r.data.error) { toast(r.data.error, 'error'); return; }
@@ -421,7 +440,7 @@ async function runDb() {
     const sql = document.getElementById('dbSql').value.trim();
     if (!sql) { toast('SQL 不能为空', 'error'); return; }
     const r = await api('POST', '/nodes/' + n.id + '/db', {
-        dbType: document.getElementById('dbType').value,
+        dbType: 'mysql',
         host: document.getElementById('dbHost').value,
         port: document.getElementById('dbPort').value,
         user: document.getElementById('dbUser').value,
@@ -467,7 +486,7 @@ function renderDbResult(text) {
 function ensureTerminal() {
     const n = state.currentNode;
     if (!n) { toast('请先选择节点', 'error'); return; }
-    const container = document.getElementById('terminalContainer');
+    const container = document.getElementById('terminalWrap');
     if (!container._ready) {
         container.innerHTML = '';
         container._ready = true;
@@ -485,7 +504,7 @@ function ensureTerminal() {
 }
 
 function createTerminal(node) {
-    const container = document.getElementById('terminalContainer');
+    const container = document.getElementById('terminalWrap');
     const div = document.createElement('div');
     div.id = 'term-' + node.id;
     div.className = 'terminal-instance active';
@@ -496,25 +515,27 @@ function createTerminal(node) {
         fontFamily: 'Menlo, Monaco, Consolas, monospace',
         cursorBlink: true,
         theme: {
-            background: '#0d1117', foreground: '#e6edf3', cursor: '#e6edf3',
-            black: '#484f58', red: '#ff7b72', green: '#3fb950', yellow: '#d29922',
-            blue: '#58a6ff', magenta: '#bc8cff', cyan: '#39c5cf', white: '#b1bac4',
-            brightBlack: '#6e7681', brightRed: '#ffa198', brightGreen: '#56d364',
-            brightYellow: '#e3b341', brightBlue: '#79c0ff', brightMagenta: '#d2a8ff',
-            brightCyan: '#56d4dd', brightWhite: '#f0f6fc',
+            background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#d4d4d4',
+            black: '#1e1e1e', red: '#f48771', green: '#89d185', yellow: '#dcdcaa',
+            blue: '#569cd6', magenta: '#c586c0', cyan: '#4ec9b0', white: '#d4d4d4',
         },
         scrollback: 10000,
     });
-    const fitAddon = new FitAddon.FitAddon();
-    term.loadAddon(fitAddon);
+
+    let fitAddon;
+    try {
+        fitAddon = new FitAddon.FitAddon();
+        term.loadAddon(fitAddon);
+    } catch (e) {
+        // FitAddon 未加载时继续
+    }
     term.open(div);
-    setTimeout(() => fitAddon.fit(), 30);
+    if (fitAddon) setTimeout(() => fitAddon.fit(), 30);
 
     const termData = { term, fitAddon, ws: null, buf: '' };
     state.terms[node.id] = termData;
     state.activeTermId = node.id;
 
-    let suppress = false;
     term.onData((data) => handleTermInput(node.id, data));
     connectTermWS(node.id);
     return termData;
@@ -576,95 +597,41 @@ function destroyTerminal(nodeId) {
     if (state.activeTermId === nodeId) state.activeTermId = null;
 }
 
-// ===== 脚本生成器 =====
-async function genScript() {
-    const type = document.getElementById('scriptType').value;
-    const pass = document.getElementById('scriptPass').value.trim();
-    const q = pass ? '?password=' + encodeURIComponent(pass) : '';
-    const r = await api('GET', '/scripts/' + type + q);
-    if (r.data.error) { toast(r.data.error, 'error'); return; }
-    document.getElementById('scriptContent').value = r.data.content;
-}
-
-function copyScript() {
-    const el = document.getElementById('scriptContent');
-    if (!el.value) { toast('请先生成脚本', 'info'); return; }
-    navigator.clipboard.writeText(el.value).then(() => toast('已复制', 'success'))
-        .catch(() => { el.select(); document.execCommand('copy'); toast('已复制', 'success'); });
-}
-
-function downloadScript() {
-    const el = document.getElementById('scriptContent');
-    if (!el.value) { toast('请先生成脚本', 'info'); return; }
-    const type = document.getElementById('scriptType').value;
-    const fname = { php: 'shell.php', jsp: 'shell.jsp', aspx: 'shell.aspx', asp: 'shell.asp' }[type];
-    const blob = new Blob([el.value], { type: 'text/plain' });
-    const a = document.createElement('a');
-    a.href = URL.createObjectURL(blob);
-    a.download = fname;
-    a.click();
-    URL.revokeObjectURL(a.href);
-}
-
 // ===== 事件绑定 =====
 function bindEvents() {
     document.getElementById('addNodeBtn').onclick = () => showNodeModal(null);
     document.getElementById('saveNodeBtn').onclick = saveNode;
-    document.getElementById('editNodeBtn').onclick = () => {
-        if (!state.currentNode) { toast('请先选择节点', 'error'); return; }
-        showNodeModal(state.currentNode);
-    };
     document.getElementById('deleteNodeBtn').onclick = deleteNode;
-    document.getElementById('testNodeBtn').onclick = testNode;
-
-    document.getElementById('genScriptBtn').onclick = () => { openModal('scriptModal'); genScript(); };
-    document.getElementById('scriptGenBtn').onclick = genScript;
-    document.getElementById('scriptCopyBtn').onclick = copyScript;
-    document.getElementById('scriptDownloadBtn').onclick = downloadScript;
-
+    document.getElementById('connectBtn').onclick = testNode;
     document.getElementById('logoutBtn').onclick = () => {
         if (confirm('确定退出登录？')) logout(false);
     };
 
-    document.getElementById('sidebarToggle').onclick = () => {
-        document.getElementById('sidebar').classList.toggle('collapsed');
-    };
-
-    document.querySelectorAll('.tab').forEach((t) => {
+    document.querySelectorAll('.nav-item').forEach((t) => {
         t.onclick = () => switchTab(t.dataset.tab);
     });
 
+    document.getElementById('nodeSearch').oninput = renderNodeList;
+
     // 命令执行
-    document.getElementById('cmdRunBtn').onclick = runCmd;
     document.getElementById('cmdInput').onkeydown = (e) => { if (e.key === 'Enter') runCmd(); };
-    document.getElementById('cmdClearBtn').onclick = () => { document.getElementById('cmdOutput').textContent = ''; };
 
     // 文件管理
     document.getElementById('fileUpBtn').onclick = () => loadFiles(dirOf(state.filePath));
-    document.getElementById('fileGoBtn').onclick = () => loadFiles(document.getElementById('filePath').value.trim());
     document.getElementById('filePath').onkeydown = (e) => { if (e.key === 'Enter') loadFiles(e.target.value.trim()); };
     document.getElementById('fileRefreshBtn').onclick = () => loadFiles(state.filePath);
-    document.getElementById('fileMkdirBtn').onclick = mkdirFile;
-    document.getElementById('fileUploadBtn').onclick = () => document.getElementById('fileUploadInput').click();
+    document.getElementById('fileNewFolderBtn').onclick = mkdirFile;
     document.getElementById('fileUploadInput').onchange = uploadFiles;
-    document.getElementById('fileEditorSave').onclick = saveFile;
-    document.getElementById('fileEditorClose').onclick = () => {
-        document.getElementById('fileEditor').style.display = 'none';
+    document.getElementById('saveFileBtn').onclick = saveFile;
+    document.getElementById('closeEditorBtn').onclick = () => {
+        document.getElementById('fileEditor').classList.add('hidden');
         state.editingFile = null;
         loadFiles(state.filePath);
-    };
-    document.getElementById('fileEditorDownload').onclick = () => {
-        if (!state.editingFile) return;
-        const blob = new Blob([base64ToBytes(state.editingFile.base64)]);
-        const a = document.createElement('a');
-        a.href = URL.createObjectURL(blob);
-        a.download = state.editingFile.path.split(/[\\/]/).pop();
-        a.click();
-        URL.revokeObjectURL(a.href);
     };
 
     // 数据库
     document.getElementById('dbRunBtn').onclick = runDb;
+    document.getElementById('dbConnectBtn').onclick = runDb;
     document.getElementById('dbSql').onkeydown = (e) => {
         if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') runDb();
     };
@@ -672,14 +639,14 @@ function bindEvents() {
     // 终端自适应
     window.addEventListener('resize', () => {
         const t = state.terms[state.activeTermId];
-        if (t) t.fitAddon.fit();
+        if (t && t.fitAddon) t.fitAddon.fit();
     });
 }
 
 // ===== 初始化 =====
 async function init() {
     if (!state.token) { window.location.href = '/login'; return; }
-    document.getElementById('currentUser').textContent = state.user;
+    document.getElementById('username').textContent = state.user;
     bindEvents();
     try {
         await loadNodes();
