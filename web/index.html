@@ -38,6 +38,28 @@
                     <span>数据库</span>
                 </div>
             </nav>
+            <div class="sidebar-footer">
+                <div class="stat-mini">
+                    <span class="stat-mini-dot blue"></span>
+                    <span class="stat-mini-label">节点</span>
+                    <span class="stat-mini-value" id="statTotal">0</span>
+                </div>
+                <div class="stat-mini">
+                    <span class="stat-mini-dot green"></span>
+                    <span class="stat-mini-label">已连接</span>
+                    <span class="stat-mini-value" id="statConnected">0</span>
+                </div>
+                <div class="stat-mini">
+                    <span class="stat-mini-dot orange"></span>
+                    <span class="stat-mini-label">PHP</span>
+                    <span class="stat-mini-value" id="statPhp">0</span>
+                </div>
+                <div class="stat-mini">
+                    <span class="stat-mini-dot red"></span>
+                    <span class="stat-mini-label">其他</span>
+                    <span class="stat-mini-value" id="statOther">0</span>
+                </div>
+            </div>
         </aside>
 
         <!-- 主内容 -->
@@ -59,43 +81,13 @@
             </header>
 
             <div class="content-area">
-                <!-- 节点卡片区域 -->
-                <div class="stats-grid" id="nodeStats">
-                    <div class="stat-card">
-                        <div class="stat-icon blue"><i class="fas fa-server"></i></div>
-                        <div class="stat-info">
-                            <h3>节点总数</h3>
-                            <div class="stat-value" id="statTotal">0</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon green"><i class="fas fa-check-circle"></i></div>
-                        <div class="stat-info">
-                            <h3>已连接</h3>
-                            <div class="stat-value" id="statConnected">0</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon orange"><i class="fas fa-globe"></i></div>
-                        <div class="stat-info">
-                            <h3>PHP 节点</h3>
-                            <div class="stat-value" id="statPhp">0</div>
-                        </div>
-                    </div>
-                    <div class="stat-card">
-                        <div class="stat-icon red"><i class="fas fa-bug"></i></div>
-                        <div class="stat-info">
-                            <h3>JSP/ASP 节点</h3>
-                            <div class="stat-value" id="statOther">0</div>
-                        </div>
-                    </div>
-                </div>
-
-                <div class="card-grid">
+                <div class="workspace">
                     <!-- 节点列表 -->
-                    <div class="card">
+                    <div class="card node-panel">
                         <div class="card-header">
                             <h3><i class="fas fa-list"></i> 节点列表</h3>
+                        </div>
+                        <div class="search-row">
                             <div class="search-box">
                                 <i class="fas fa-search"></i>
                                 <input type="text" id="nodeSearch" placeholder="搜索节点...">
@@ -112,10 +104,7 @@
                     </div>
 
                     <!-- 功能面板 -->
-                    <div class="card" style="grid-column: span 1; min-width: 0;">
-                        <div class="card-header">
-                            <h3><i class="fas fa-cogs"></i> 功能面板</h3>
-                        </div>
+                    <div class="card panel-card">
                         <div class="card-body" style="padding: 0;">
                             <div id="panel-file" class="tab-panel active">
                                 <div class="panel-toolbar">
@@ -136,14 +125,14 @@
                                 </table>
                             </div>
                             <div id="panel-cmd" class="tab-panel">
-                                <div class="shell-output" id="cmdOutput" style="height: 320px; border-radius: 0;"></div>
+                                <div class="shell-output" id="cmdOutput" style="flex:1; border-radius: 0;"></div>
                                 <div class="shell-input-line">
                                     <span class="shell-prompt">$</span>
                                     <input type="text" id="cmdInput" class="shell-input" placeholder="输入命令，按回车执行">
                                 </div>
                             </div>
                             <div id="panel-terminal" class="tab-panel">
-                                <div id="terminalWrap" style="height: 380px; background: #1e1e1e;"></div>
+                                <div id="terminalWrap" style="flex:1; background: #1e1e1e; min-height: 0;"></div>
                             </div>
                             <div id="panel-db" class="tab-panel">
                                 <div class="panel-toolbar" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">

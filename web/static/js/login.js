@@ -7,11 +7,9 @@
         return;
     }
 
-    const form = document.getElementById('loginForm');
-    const errorMsg = document.getElementById('errorMsg');
-    const loginBtn = document.getElementById('loginBtn');
-    const btnText = loginBtn.querySelector('.btn-text');
-    const btnLoading = loginBtn.querySelector('.btn-loading');
+    const form = document.getElementById('login-form');
+    const errorMsg = document.getElementById('login-error');
+    const loginBtn = document.getElementById('login-btn');
 
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
@@ -20,9 +18,8 @@
         const password = document.getElementById('password').value;
 
         // 显示加载状态
-        btnText.style.display = 'none';
-        btnLoading.style.display = 'inline-flex';
         loginBtn.disabled = true;
+        loginBtn.textContent = '登录中...';
         errorMsg.style.display = 'none';
 
         try {
@@ -46,9 +43,8 @@
             errorMsg.textContent = '网络错误，请检查连接';
             errorMsg.style.display = 'block';
         } finally {
-            btnText.style.display = '';
-            btnLoading.style.display = 'none';
             loginBtn.disabled = false;
+            loginBtn.textContent = '登录';
         }
     });
 })();
