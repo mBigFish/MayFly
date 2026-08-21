@@ -32,10 +32,12 @@
             const data = await res.json();
 
             if (res.ok && data.token) {
-                localStorage.setItem('mayfly_token', data.token);
-                localStorage.setItem('mayfly_user', username);
-                window.location.href = '/';
-            } else {
+                        localStorage.setItem('mayfly_token', data.token);
+                        localStorage.setItem('mayfly_user', username);
+                        // 新登录：清除界面状态缓存，不恢复上次的视图/节点/终端
+                        localStorage.removeItem('mayfly_ui_state');
+                        window.location.href = '/';
+                    } else {
                 errorMsg.textContent = data.error || '登录失败';
                 errorMsg.style.display = 'block';
             }

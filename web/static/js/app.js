@@ -1,16 +1,23 @@
 // ===== Mayfly WebShell 管理器前端 =====
 
+// 界面状态持久化：记住最后选中的节点、当前功能面板/标签页，刷新后自动恢复
+const UI_KEY = 'mayfly_ui_state';
+let savedUI = {};
+try { savedUI = JSON.parse(localStorage.getItem(UI_KEY) || '{}'); } catch (e) { savedUI = {}; }
+
 const state = {
     token: localStorage.getItem('mayfly_token'),
     user: localStorage.getItem('mayfly_user') || 'admin',
     nodes: [],
     currentNode: null,
-    currentTab: 'file',
-    currentView: 'connections', // 'workspace' or 'connections'
+    currentTab: savedUI.currentTab || 'file',
+    currentView: savedUI.currentView || 'connections', // 'workspace' or 'connections'
     filePath: '',
     editingFile: null,
     terms: {},
     activeTermId: null,
+    srvTerms: {},
+    activeSrvTermId: null,
     connStatus: {}, // { nodeId: { status: 'ok'|'fail'|'testing'|'untested', message, info } }
     clearedNodes: {}, // 节点列表中已"清空"隐藏的节点 id（不影响连接列表数据）
     connFilter: 'all',
@@ -77,6 +84,7 @@ function toast(msg, type) {
 function logout(expired) {
     localStorage.removeItem('mayfly_token');
     localStorage.removeItem('mayfly_user');
+    localStorage.removeItem(UI_KEY);
     if (expired) alert('登录已过期，请重新登录');
     window.location.href = '/login';
 }
@@ -211,6 +219,52 @@ function renderNodeList() {
     });
 }
 
+// ===== 界面状态持久化 =====
+function persistUI() {
+    localStorage.setItem(UI_KEY, JSON.stringify({
+        currentView: state.currentView,
+        currentTab: state.currentTab,
+        currentNodeId: state.currentNode ? state.currentNode.id : null,
+        srvTermIds: Object.keys(state.srvTerms).map(Number),
+    }));
+}
+
+function restoreUI() {
+    const v = state.currentView;
+    const nodeId = savedUI.currentNodeId;
+
+    // 先恢复内存中的选中节点（无论在哪个视图，切回工作区时仍保持选中）
+    const node = nodeId ? state.nodes.find((n) => n.id === nodeId) : null;
+    if (node) {
+        state.currentNode = node;
+        delete state.clearedNodes[node.id]; // 恢复选中即视为重新进入节点列表
+    }
+
+    if (v === 'reverse-shell') { switchToReverseShell(); return; }
+    if (v === 'servers') { switchToServers(); return; }
+    if (v === 'server-term') { switchToServerTerm(); restoreSrvTerms(); return; }
+    if (v === 'connections') { switchToConnections(); return; }
+
+    // 工作区视图：切回对应标签页，并回填节点标题
+    switchTab(state.currentTab || 'file');
+    if (node) {
+        document.getElementById('currentNodeTitle').innerHTML =
+            '<span class="type-badge type-' + node.type + '">' + node.type.toUpperCase() + '</span> ' + escapeHtml(node.name);
+    }
+}
+
+// 刷新后恢复服务器终端列表：根据保存的服务器 ID 重新打开终端
+async function restoreSrvTerms() {
+    if (!state.servers || state.servers.length === 0) {
+        await loadServers();
+    }
+    const ids = savedUI.srvTermIds || [];
+    ids.forEach((id) => {
+        const s = state.servers.find((x) => x.id === id);
+        if (s) ensureSrvTerminal(s);
+    });
+}
+
 function selectNode(node) {
     delete state.clearedNodes[node.id]; // 重新进入节点列表
     state.currentNode = node;
@@ -221,11 +275,12 @@ function selectNode(node) {
         '<span class="type-badge type-' + node.type + '">' + node.type.toUpperCase() + '</span> ' + escapeHtml(node.name);
     renderNodeList();
     updatePanelsForNode();
+    persistUI();
 }
 
 function updatePanelsForNode() {
     if (state.currentTab === 'file') loadFiles('');
-    else if (state.currentTab === 'cmd') document.getElementById('cmdOutput').textContent = '';
+    else if (state.currentTab === 'cmd') loadCmdHistory();
     else if (state.currentTab === 'terminal') ensureTerminal();
     else if (state.currentTab === 'db') {
         document.getElementById('dbResultTable').style.display = 'none';
@@ -279,6 +334,7 @@ function clearNodeList() {
     state.currentNode = null;
     document.getElementById('currentNodeTitle').innerHTML = '<span class="muted">未选择节点</span>';
     renderNodeList();
+    persistUI();
     toast('已清空节点列表', 'success');
 }
 
@@ -491,6 +547,7 @@ function switchTab(tab) {
     document.getElementById('connectionsView').classList.add('hidden');
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.add('hidden');
+    document.getElementById('serverTermView').classList.add('hidden');
     document.getElementById('headerSearchWrap').style.display = '';
     document.querySelector('.breadcrumb').innerHTML = '节点列表 / <span id="currentNodeTitle"><span class="muted">未选择节点</span></span>';
     document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
@@ -498,6 +555,7 @@ function switchTab(tab) {
     renderNodeList();
     updatePanelsForNode();
     if (tab === 'terminal') ensureTerminal();
+    persistUI();
 }
 
 function switchToConnections() {
@@ -509,9 +567,11 @@ function switchToConnections() {
     document.getElementById('connectionsView').classList.remove('hidden');
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.add('hidden');
+    document.getElementById('serverTermView').classList.add('hidden');
     document.getElementById('headerSearchWrap').style.display = '';
     document.querySelector('.breadcrumb').innerHTML = '节点列表 / <span id="currentNodeTitle"><span class="muted">连接列表</span></span>';
     renderConnList();
+    persistUI();
 }
 
 function switchToReverseShell() {
@@ -523,10 +583,12 @@ function switchToReverseShell() {
     document.getElementById('connectionsView').classList.add('hidden');
     document.getElementById('reverseShellView').classList.remove('hidden');
     document.getElementById('serversView').classList.add('hidden');
+    document.getElementById('serverTermView').classList.add('hidden');
     document.getElementById('headerSearchWrap').style.display = 'none';
     document.querySelector('.breadcrumb').textContent = '反弹Shell';
     loadListeners();
     genPayloads();
+    persistUI();
 }
 
 function switchToServers() {
@@ -538,9 +600,176 @@ function switchToServers() {
     document.getElementById('connectionsView').classList.add('hidden');
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.remove('hidden');
+    document.getElementById('serverTermView').classList.add('hidden');
     document.getElementById('headerSearchWrap').style.display = 'none';
     document.querySelector('.breadcrumb').textContent = '资源管理';
     loadServers();
+    persistUI();
+}
+
+// ===== 服务器 SSH 交互终端 =====
+function switchToServerTerm() {
+    state.currentView = 'server-term';
+    document.querySelectorAll('.nav-item').forEach((t) => t.classList.remove('active'));
+    document.querySelector('.nav-item[data-view="server-term"]').classList.add('active');
+    document.getElementById('workspaceView').classList.add('hidden');
+    document.getElementById('fileEditor').classList.add('hidden');
+    document.getElementById('connectionsView').classList.add('hidden');
+    document.getElementById('reverseShellView').classList.add('hidden');
+    document.getElementById('serversView').classList.add('hidden');
+    document.getElementById('serverTermView').classList.remove('hidden');
+    document.getElementById('headerSearchWrap').style.display = 'none';
+    document.querySelector('.breadcrumb').textContent = '终端操作';
+    renderSrvTermList();
+    const t = state.srvTerms[state.activeSrvTermId];
+    if (t && t.fitAddon) setTimeout(() => t.fitAddon.fit(), 30);
+    persistUI();
+}
+
+// 从服务器卡片打开终端（入口）
+function openServerTerminal(serverId) {
+    const s = state.servers.find((x) => x.id === serverId);
+    if (!s) { toast('服务器不存在', 'error'); return; }
+    switchToServerTerm();
+    ensureSrvTerminal(s);
+}
+
+function ensureSrvTerminal(s) {
+    if (state.srvTerms[s.id]) { switchSrvTerm(s.id); return; }
+    createSrvTerminal(s);
+}
+
+function createSrvTerminal(s) {
+    const container = document.getElementById('srvTermWrap');
+    if (!container._ready) { container.innerHTML = ''; container._ready = true; }
+    const div = document.createElement('div');
+    div.id = 'srvterm-' + s.id;
+    div.className = 'terminal-instance active';
+    container.appendChild(div);
+
+    const term = new Terminal({
+        fontSize: 14,
+        fontFamily: 'Menlo, Monaco, Consolas, monospace',
+        cursorBlink: true,
+        theme: getTerminalTheme(),
+        scrollback: 10000,
+    });
+    let fitAddon;
+    try { fitAddon = new FitAddon.FitAddon(); term.loadAddon(fitAddon); } catch (e) {}
+    term.open(div);
+    if (fitAddon) setTimeout(() => { fitAddon.fit(); sendSrvResize(s.id); }, 50);
+
+    const termData = { term, fitAddon, ws: null, server: s };
+    state.srvTerms[s.id] = termData;
+    state.activeSrvTermId = s.id;
+
+    term.onData((data) => handleSrvTermInput(s.id, data));
+    term.onResize(() => sendSrvResize(s.id));
+    connectSrvTermWS(s.id);
+    renderSrvTermList();
+    persistUI();
+}
+
+function connectSrvTermWS(serverId) {
+    const td = state.srvTerms[serverId];
+    if (!td) return;
+    const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') +
+        location.host + '/api/servers/' + serverId + '/terminal?token=' + encodeURIComponent(state.token);
+    const ws = new WebSocket(wsUrl);
+    td.ws = ws;
+    ws.onmessage = (e) => {
+        try {
+            const msg = JSON.parse(e.data);
+            if (msg.type === 'output' || msg.type === 'error') {
+                td.term.write(String(msg.data));
+            } else if (msg.type === 'ready') {
+                td.term.write('\x1b[32m[SSH 已连接 ' + escapeHtml(td.server.host || '') + ']\x1b[0m\r\n');
+                sendSrvResize(serverId);
+            }
+        } catch (err) {}
+    };
+    ws.onclose = () => {
+        if (state.srvTerms[serverId]) td.term.write('\x1b[33m\r\n[连接已断开]\x1b[0m\r\n');
+    };
+}
+
+function handleSrvTermInput(serverId, data) {
+    const td = state.srvTerms[serverId];
+    if (!td || !td.ws || td.ws.readyState !== WebSocket.OPEN) return;
+    td.ws.send(JSON.stringify({ type: 'input', data }));
+}
+
+function sendSrvResize(serverId) {
+    const td = state.srvTerms[serverId];
+    if (!td || !td.ws || td.ws.readyState !== WebSocket.OPEN || !td.term) return;
+    td.ws.send(JSON.stringify({ type: 'resize', cols: td.term.cols, rows: td.term.rows }));
+}
+
+function switchSrvTerm(serverId) {
+    const td = state.srvTerms[serverId];
+    if (!td) return;
+    document.querySelectorAll('#srvTermWrap .terminal-instance').forEach((el) => el.classList.remove('active'));
+    const div = document.getElementById('srvterm-' + serverId);
+    if (div) div.classList.add('active');
+    state.activeSrvTermId = serverId;
+    setTimeout(() => { if (td.fitAddon) td.fitAddon.fit(); }, 30);
+    renderSrvTermList();
+}
+
+function destroySrvTerminal(serverId) {
+    const t = state.srvTerms[serverId];
+    if (!t) return;
+    if (t.ws) t.ws.close();
+    if (t.term) t.term.dispose();
+    delete state.srvTerms[serverId];
+    const div = document.getElementById('srvterm-' + serverId);
+    if (div) div.remove();
+    if (state.activeSrvTermId === serverId) {
+        const ids = Object.keys(state.srvTerms);
+        state.activeSrvTermId = ids.length > 0 ? parseInt(ids[0]) : null;
+        if (state.activeSrvTermId) {
+            const d = document.getElementById('srvterm-' + state.activeSrvTermId);
+            if (d) d.classList.add('active');
+        }
+    }
+    renderSrvTermList();
+    persistUI();
+}
+
+function renderSrvTermList() {
+    const container = document.getElementById('srvTermList');
+    if (!container) return;
+    const ids = Object.keys(state.srvTerms);
+    if (ids.length === 0) {
+        container.innerHTML = '<div class="server-term-empty">暂无终端</div>';
+        return;
+    }
+    container.innerHTML = ids.map((id) => {
+        const td = state.srvTerms[id];
+        const s = td.server;
+        const active = state.activeSrvTermId == id ? 'active' : '';
+        return `
+            <div class="srv-term-item ${active}" data-srv-term="${id}">
+                <div class="srv-term-info">
+                    <i class="fas fa-terminal"></i>
+                    <span class="srv-term-name" title="${escapeHtml(s.name || s.host)}">${escapeHtml(s.name || s.host)}</span>
+                    <span class="mono srv-term-addr">${escapeHtml(s.host)}:${s.port || 22}</span>
+                </div>
+                <button class="srv-term-close" data-srv-term-close="${id}" title="关闭终端"><i class="fas fa-times"></i></button>
+            </div>`;
+    }).join('');
+    container.querySelectorAll('.srv-term-item').forEach((item) => {
+        item.onclick = (e) => {
+            if (e.target.closest('.srv-term-close')) return;
+            switchSrvTerm(parseInt(item.dataset.srvTerm));
+        };
+    });
+    container.querySelectorAll('.srv-term-close').forEach((btn) => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            destroySrvTerminal(parseInt(btn.dataset.srvTermClose));
+        };
+    });
 }
 
 // ===== 命令执行 =====
@@ -604,6 +833,35 @@ function runQuickCmd(cmd) {
     if (!input) return;
     input.value = cmd;
     runCmd();
+}
+
+// 从服务端缓存文件加载当前节点的命令执行历史
+async function loadCmdHistory() {
+    const n = state.currentNode;
+    const out = document.getElementById('cmdOutput');
+    if (!n) { out.textContent = ''; return; }
+    const r = await api('GET', '/nodes/' + n.id + '/cmd/history');
+    const records = (r.data && r.data.history) || [];
+    let text = '';
+    records.forEach((rec) => {
+        text += '\n> ' + rec.cmd + '\n';
+        if (rec.error) {
+            text += '[错误] ' + rec.error + '\n';
+        } else {
+            text += (rec.output || '(无输出)') + (rec.output && !rec.output.endsWith('\n') ? '\n' : '');
+        }
+    });
+    out.textContent = text;
+    out.scrollTop = out.scrollHeight;
+}
+
+// 清空当前节点的命令执行历史
+async function clearCmdHistory() {
+    const n = state.currentNode;
+    if (!n) { toast('请先选择节点', 'error'); return; }
+    await api('DELETE', '/nodes/' + n.id + '/cmd/history');
+    document.getElementById('cmdOutput').textContent = '';
+    toast('已清空命令历史', 'success');
 }
 
 // ===== 文件管理 =====
@@ -956,6 +1214,7 @@ function bindEvents() {
             if (t.dataset.view === 'connections') switchToConnections();
             else if (t.dataset.view === 'reverse-shell') switchToReverseShell();
             else if (t.dataset.view === 'servers') switchToServers();
+            else if (t.dataset.view === 'server-term') switchToServerTerm();
             else if (t.dataset.tab) switchTab(t.dataset.tab);
         };
     });
@@ -975,6 +1234,16 @@ function bindEvents() {
     document.getElementById('srvAddBtn').onclick = () => showServerModal(null);
     document.getElementById('saveSrvBtn').onclick = saveServer;
     document.getElementById('srvBatchTestBtn').onclick = batchTestServers;
+    // 密码显示/隐藏切换
+    document.querySelectorAll('.pwd-toggle').forEach((btn) => {
+        btn.onclick = () => {
+            const input = document.getElementById(btn.dataset.target);
+            if (!input) return;
+            const show = input.type === 'password';
+            input.type = show ? 'text' : 'password';
+            btn.querySelector('i').className = show ? 'fas fa-eye-slash' : 'fas fa-eye';
+        };
+    });
     document.querySelectorAll('.conn-filter-tab').forEach((tab) => {
         tab.onclick = () => {
             document.querySelectorAll('.conn-filter-tab').forEach((t) => t.classList.remove('active'));
@@ -1003,6 +1272,7 @@ function bindEvents() {
 
     // 命令执行
     document.getElementById('cmdInput').onkeydown = (e) => { if (e.key === 'Enter') runCmd(); };
+    document.getElementById('clearCmdBtn').onclick = clearCmdHistory;
 
     // 文件管理
     document.getElementById('fileUpBtn').onclick = () => loadFiles(dirOf(state.filePath));
@@ -1028,6 +1298,8 @@ function bindEvents() {
     window.addEventListener('resize', debounce(() => {
         const t = state.terms[state.activeTermId];
         if (t && t.fitAddon) t.fitAddon.fit();
+        const st = state.srvTerms[state.activeSrvTermId];
+        if (st && st.fitAddon) st.fitAddon.fit();
     }, 100));
 }
 
@@ -1059,7 +1331,10 @@ function getTerminalTheme() {
 function updateTerminalsTheme() {
     const t = getTerminalTheme();
     Object.values(state.terms).forEach((item) => {
-        if (item.term) item.term.options.theme = t;
+        if (item.term) { item.term.options.theme = t; item.term.refresh(0, item.term.rows - 1); }
+    });
+    Object.values(state.srvTerms).forEach((item) => {
+        if (item.term) { item.term.options.theme = t; item.term.refresh(0, item.term.rows - 1); }
     });
 }
 
@@ -1097,7 +1372,7 @@ async function init() {
     renderQuickCmds();
     try {
         await loadNodes();
-        renderConnList();
+        restoreUI();
     } catch (e) { /* 401 会在 api() 中处理跳转 */ }
 }
 
@@ -1311,6 +1586,7 @@ function renderServerList() {
             if (act === 'edit') showServerModal(id);
             else if (act === 'delete') deleteServer(id);
             else if (act === 'test') testServer(id);
+            else if (act === 'term') openServerTerminal(id);
         };
     });
 }
@@ -1345,6 +1621,7 @@ function renderServerItem(s) {
             <div class="srv-foot">
                 <span class="srv-test-time"><i class="fas fa-clock"></i>${testTime ? '上次测试 ' + testTime : '尚未测试'}</span>
                 <div class="srv-actions">
+                    <button class="srv-action-btn" data-act="term" data-id="${s.id}"><i class="fas fa-terminal"></i>终端</button>
                     <button class="srv-action-btn success" data-act="test" data-id="${s.id}"><i class="fas fa-plug"></i>测试</button>
                     <button class="srv-action-btn" data-act="edit" data-id="${s.id}"><i class="fas fa-edit"></i>编辑</button>
                     <button class="srv-action-btn danger" data-act="delete" data-id="${s.id}"><i class="fas fa-trash"></i>删除</button>

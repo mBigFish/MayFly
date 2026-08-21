@@ -19,12 +19,13 @@ import (
 
 // NodeHandler 节点管理及核心操作
 type NodeHandler struct {
-	store *store.Store
+	store      *store.Store
+	cmdHistory *store.CmdHistoryStore
 }
 
 // NewNodeHandler 创建 NodeHandler
-func NewNodeHandler(s *store.Store) *NodeHandler {
-	return &NodeHandler{store: s}
+func NewNodeHandler(s *store.Store, h *store.CmdHistoryStore) *NodeHandler {
+	return &NodeHandler{store: s, cmdHistory: h}
 }
 
 func genID() string {
@@ -112,6 +113,7 @@ func (h *NodeHandler) DeleteNode(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "删除失败: " + err.Error()})
 		return
 	}
+	h.cmdHistory.Clear(id)
 	c.JSON(http.StatusOK, gin.H{"message": "已删除"})
 }
 
@@ -176,6 +178,12 @@ func (h *NodeHandler) BatchTest(c *gin.Context) {
 
 // ExecCmd 命令执行
 func (h *NodeHandler) ExecCmd(c *gin.Context) {
+	node, ok := c.Get("node")
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "节点不存在"})
+		return
+	}
+	n := node.(*model.Node)
 	var req struct {
 		Cmd string `json:"cmd"`
 	}
@@ -183,12 +191,37 @@ func (h *NodeHandler) ExecCmd(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "命令不能为空"})
 		return
 	}
-	output, err := clientOf(c).Exec(req.Cmd)
+	output, err := service.NewClient(n).Exec(req.Cmd)
 	if err != nil {
+		h.cmdHistory.Append(n.ID, req.Cmd, "", err.Error())
 		c.JSON(http.StatusOK, gin.H{"output": "", "error": err.Error()})
 		return
 	}
+	h.cmdHistory.Append(n.ID, req.Cmd, output, "")
 	c.JSON(http.StatusOK, gin.H{"output": output})
+}
+
+// GetCmdHistory 获取节点命令执行历史
+func (h *NodeHandler) GetCmdHistory(c *gin.Context) {
+	node, ok := c.Get("node")
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "节点不存在"})
+		return
+	}
+	n := node.(*model.Node)
+	c.JSON(http.StatusOK, gin.H{"history": h.cmdHistory.History(n.ID)})
+}
+
+// ClearCmdHistory 清空节点命令执行历史
+func (h *NodeHandler) ClearCmdHistory(c *gin.Context) {
+	node, ok := c.Get("node")
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "节点不存在"})
+		return
+	}
+	n := node.(*model.Node)
+	h.cmdHistory.Clear(n.ID)
+	c.JSON(http.StatusOK, gin.H{"message": "已清空"})
 }
 
 // ListDir 文件列表

@@ -58,6 +58,10 @@
                     <i class="fas fa-server"></i>
                     <span>资源管理</span>
                 </div>
+                <div class="nav-item" data-view="server-term">
+                    <i class="fas fa-terminal"></i>
+                    <span>终端操作</span>
+                </div>
             </nav>
             <div class="sidebar-footer">
                 <div class="stat-mini">
@@ -189,9 +193,10 @@
                                                     <div class="cmd-quick-body" id="cmdQuickGrid"></div>
                                                 </div>
                                                 <div class="shell-input-line">
-                                                    <span class="shell-prompt">$</span>
-                                                    <input type="text" id="cmdInput" class="shell-input" placeholder="输入命令，按回车执行" autocomplete="off">
-                                                </div>
+                                                                                    <span class="shell-prompt">$</span>
+                                                                                    <input type="text" id="cmdInput" class="shell-input" placeholder="输入命令，按回车执行" autocomplete="off">
+                                                                                    <button type="button" id="clearCmdBtn" class="cmd-quick-btn" title="清空命令历史" style="margin-left:10px;"><i class="fas fa-eraser"></i> 清空</button>
+                                                                                </div>
                                             </div>
                             <div id="panel-terminal" class="tab-panel">
                                 <div id="terminalWrap" style="flex:1; background: var(--shell-bg); min-height: 0;"></div>
@@ -268,6 +273,22 @@
                         <button class="btn btn-primary btn-sm" id="srvBatchTestBtn"><i class="fas fa-bolt"></i> 一键测试</button>
                     </div>
                     <div id="srvGroups" class="conn-groups"></div>
+                </div>
+
+                <!-- 服务器终端视图 -->
+                <div id="serverTermView" class="server-term-view hidden">
+                    <div class="server-term-layout">
+                        <div class="server-term-sidebar">
+                            <div class="server-term-sidebar-header">
+                                <span><i class="fas fa-terminal"></i> 终端列表</span>
+                            </div>
+                            <div id="srvTermList" class="server-term-list"></div>
+                            <div class="server-term-sidebar-tip">在「资源管理」中点击服务器卡片的「终端」按钮打开终端</div>
+                        </div>
+                        <div class="server-term-main">
+                            <div id="srvTermWrap" class="terminal-wrap"></div>
+                        </div>
+                    </div>
                 </div>
 
                 <!-- 反弹Shell视图 -->
@@ -424,7 +445,10 @@
                 </div>
                 <div class="form-row">
                     <label>SSH 密码</label>
-                    <input type="password" id="srvPassword" class="form-control" placeholder="密码（可选，如使用私钥可留空）">
+                    <div class="input-toggle-wrap">
+                        <input type="password" id="srvPassword" class="form-control" placeholder="密码（可选，如使用私钥可留空）" autocomplete="new-password">
+                        <button type="button" class="pwd-toggle" data-target="srvPassword" title="显示/隐藏密码"><i class="fas fa-eye"></i></button>
+                    </div>
                 </div>
                 <div class="form-row">
                     <label>SSH 私钥</label>

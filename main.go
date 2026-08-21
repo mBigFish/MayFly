@@ -31,7 +31,13 @@ func main() {
 	if err != nil {
 		log.Fatalf("初始化节点存储失败: %v", err)
 	}
-	nodeHandler := handler.NewNodeHandler(nodeStore)
+	// 命令执行历史缓存存储
+	cmdHistoryStore, err := store.NewCmdHistory("data/cmd_history.json")
+	if err != nil {
+		log.Fatalf("初始化命令历史存储失败: %v", err)
+	}
+	nodeHandler := handler.NewNodeHandler(nodeStore, cmdHistoryStore)
+	serverTermHandler := handler.NewServerTerminalHandler()
 	termWSHandler := handler.NewTerminalWSHandler(nodeStore)
 	listenerHandler := handler.NewListenerHandler()
 
@@ -84,6 +90,8 @@ func main() {
 		{
 			nodeGroup.POST("/test", nodeHandler.TestNode)
 			nodeGroup.POST("/cmd", nodeHandler.ExecCmd)
+			nodeGroup.GET("/cmd/history", nodeHandler.GetCmdHistory)
+			nodeGroup.DELETE("/cmd/history", nodeHandler.ClearCmdHistory)
 			nodeGroup.POST("/file/list", nodeHandler.ListDir)
 			nodeGroup.POST("/file/read", nodeHandler.ReadFile)
 			nodeGroup.POST("/file/write", nodeHandler.WriteFile)
@@ -108,6 +116,7 @@ func main() {
 		authAPI.PUT("/servers", handler.UpdateServer)
 		authAPI.DELETE("/servers", handler.DeleteServer)
 		authAPI.POST("/servers/test", handler.TestSSHConnection)
+		authAPI.GET("/servers/:id/terminal", serverTermHandler.Handle)
 	}
 
 	// 启动服务器
