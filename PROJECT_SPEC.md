@@ -1,6 +1,6 @@
 # WebShell Manager 项目技术设计与开发规范
 
-**项目名称：** WebShell Manager
+**项目名称：** MayFly（WebShell Manager）
  **项目定位：** 面向授权安全测试、CTF/靶场及内部安全验证环境的 WebShell 管理与分析平台
  **后端：** Go
  **前端：** Vue 3 + TypeScript
