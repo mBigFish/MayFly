@@ -1,9 +1,12 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
 	"strings"
+	"sync"
+	"time"
 
 	"mayfly/internal/model"
 	"mayfly/internal/service"
@@ -62,6 +65,39 @@ func (h *TerminalWSHandler) Handle(c *gin.Context) {
 	}
 	defer conn.Close()
 
+	// WebSocket 保活：设置读超时 + 定期发 ping，防止空闲被中间层断开
+	var writeMu sync.Mutex
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+	pingCtx, pingCancel := context.WithCancel(context.Background())
+	defer pingCancel()
+	go func() {
+		ticker := time.NewTicker(25 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-pingCtx.Done():
+				return
+			case <-ticker.C:
+				writeMu.Lock()
+				err := conn.WriteMessage(websocket.PingMessage, nil)
+				writeMu.Unlock()
+				if err != nil {
+					return
+				}
+			}
+		}
+	}()
+
+	send := func(msgType, data string) error {
+		writeMu.Lock()
+		defer writeMu.Unlock()
+		return conn.WriteJSON(gin.H{"type": msgType, "data": data})
+	}
+
 	cwd := ""
 	if info, err := cl.SysInfo(); err == nil {
 		for _, line := range strings.Split(info, "\n") {
@@ -69,10 +105,6 @@ func (h *TerminalWSHandler) Handle(c *gin.Context) {
 				cwd = strings.TrimSpace(strings.TrimPrefix(line, "CWD:"))
 			}
 		}
-	}
-
-	send := func(msgType, data string) error {
-		return conn.WriteJSON(gin.H{"type": msgType, "data": data})
 	}
 
 	prompt := func() string {

@@ -167,9 +167,14 @@ function promptModal(title, placeholder, val) {
 }
 
 // ===== 节点管理 =====
-async function loadNodes() {
+async function loadNodes(hideExisting) {
     const r = await api('GET', '/nodes');
     state.nodes = r.data.nodes || [];
+    // 登录后首次加载时，默认隐藏历史节点（数据保留，连接列表里测试/进入后可恢复显示）
+    if (hideExisting) {
+        state.nodes.forEach((n) => { state.clearedNodes[n.id] = true; });
+        state.currentNode = null;
+    }
     renderNodeList();
     updateStats();
 }
@@ -231,26 +236,14 @@ function persistUI() {
 
 function restoreUI() {
     const v = state.currentView;
-    const nodeId = savedUI.currentNodeId;
-
-    // 先恢复内存中的选中节点（无论在哪个视图，切回工作区时仍保持选中）
-    const node = nodeId ? state.nodes.find((n) => n.id === nodeId) : null;
-    if (node) {
-        state.currentNode = node;
-        delete state.clearedNodes[node.id]; // 恢复选中即视为重新进入节点列表
-    }
 
     if (v === 'reverse-shell') { switchToReverseShell(); return; }
     if (v === 'servers') { switchToServers(); return; }
     if (v === 'server-term') { switchToServerTerm(); restoreSrvTerms(); return; }
     if (v === 'connections') { switchToConnections(); return; }
 
-    // 工作区视图：切回对应标签页，并回填节点标题
+    // 工作区视图：切回对应标签页（登录后节点列表默认清空，不恢复历史选中节点）
     switchTab(state.currentTab || 'file');
-    if (node) {
-        document.getElementById('currentNodeTitle').innerHTML =
-            '<span class="type-badge type-' + node.type + '">' + node.type.toUpperCase() + '</span> ' + escapeHtml(node.name);
-    }
 }
 
 // 刷新后恢复服务器终端列表：根据保存的服务器 ID 重新打开终端
@@ -554,7 +547,10 @@ function switchTab(tab) {
     document.getElementById('panel-' + tab).classList.add('active');
     renderNodeList();
     updatePanelsForNode();
-    if (tab === 'terminal') ensureTerminal();
+    if (tab === 'terminal') {
+        // 等浏览器完成 visibility 切换和一次 paint 后再初始化/刷新终端
+        requestAnimationFrame(() => setTimeout(ensureTerminal, 30));
+    }
     persistUI();
 }
 
@@ -622,7 +618,7 @@ function switchToServerTerm() {
     document.querySelector('.breadcrumb').textContent = '终端操作';
     renderSrvTermList();
     const t = state.srvTerms[state.activeSrvTermId];
-    if (t && t.fitAddon) setTimeout(() => t.fitAddon.fit(), 30);
+    requestAnimationFrame(() => setTimeout(() => refitTerm(t), 30));
     persistUI();
 }
 
@@ -659,13 +655,14 @@ function createSrvTerminal(s) {
     term.open(div);
     if (fitAddon) setTimeout(() => { fitAddon.fit(); sendSrvResize(s.id); }, 50);
 
-    const termData = { term, fitAddon, ws: null, server: s };
+    const termData = { term, fitAddon, ws: null, server: s, el: div };
     state.srvTerms[s.id] = termData;
     state.activeSrvTermId = s.id;
 
     term.onData((data) => handleSrvTermInput(s.id, data));
     term.onResize(() => sendSrvResize(s.id));
     connectSrvTermWS(s.id);
+    watchTermResize(termData, div);
     renderSrvTermList();
     persistUI();
 }
@@ -675,8 +672,20 @@ function connectSrvTermWS(serverId) {
     if (!td) return;
     const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') +
         location.host + '/api/servers/' + serverId + '/terminal?token=' + encodeURIComponent(state.token);
+    // 清理旧连接和心跳定时器
+    if (td._pingTimer) { clearInterval(td._pingTimer); td._pingTimer = null; }
+    if (td.ws) { try { td.ws.onclose = null; td.ws.close(); } catch (e) {} }
     const ws = new WebSocket(wsUrl);
     td.ws = ws;
+    td._closed = false;
+    ws.onopen = () => {
+        // 心跳保活：每 25s 发一个 ping，防止空闲被中间层断开
+        td._pingTimer = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                try { ws.send(JSON.stringify({ type: 'ping' })); } catch (e) {}
+            }
+        }, 25000);
+    };
     ws.onmessage = (e) => {
         try {
             const msg = JSON.parse(e.data);
@@ -689,8 +698,17 @@ function connectSrvTermWS(serverId) {
         } catch (err) {}
     };
     ws.onclose = () => {
-        if (state.srvTerms[serverId]) td.term.write('\x1b[33m\r\n[连接已断开]\x1b[0m\r\n');
+        if (td._pingTimer) { clearInterval(td._pingTimer); td._pingTimer = null; }
+        if (state.srvTerms[serverId] && !td._closed) {
+            td.term.write('\x1b[33m\r\n[连接已断开，3 秒后重连…]\x1b[0m\r\n');
+            setTimeout(() => {
+                if (state.srvTerms[serverId] && state.currentView === 'server-term' && state.activeSrvTermId === serverId) {
+                    connectSrvTermWS(serverId);
+                }
+            }, 3000);
+        }
     };
+    ws.onerror = () => { try { ws.close(); } catch (e) {} };
 }
 
 function handleSrvTermInput(serverId, data) {
@@ -712,13 +730,19 @@ function switchSrvTerm(serverId) {
     const div = document.getElementById('srvterm-' + serverId);
     if (div) div.classList.add('active');
     state.activeSrvTermId = serverId;
-    setTimeout(() => { if (td.fitAddon) td.fitAddon.fit(); }, 30);
+    // 切回来时如果 WS 已断开，立即重连
+    if (td.ws && td.ws.readyState !== WebSocket.OPEN && td.ws.readyState !== WebSocket.CONNECTING) {
+        td.term.write('\x1b[33m\r\n[重新连接中…]\x1b[0m\r\n');
+        connectSrvTermWS(serverId);
+    }
+    requestAnimationFrame(() => setTimeout(() => refitTerm(td), 30));
     renderSrvTermList();
 }
 
 function destroySrvTerminal(serverId) {
     const t = state.srvTerms[serverId];
     if (!t) return;
+    if (t._ro) { try { t._ro.disconnect(); } catch (e) {} }
     if (t.ws) t.ws.close();
     if (t.term) t.term.dispose();
     delete state.srvTerms[serverId];
@@ -1056,6 +1080,76 @@ function renderDbResult(text) {
 }
 
 // ===== 虚拟终端 =====
+// 等待 DOM 布局完成后重新计算终端尺寸并强制重绘（解决切换回终端时空白的问题）
+function refitTerm(termData) {
+    if (!termData || !termData.term || !termData.fitAddon || !termData.el) return;
+    const term = termData.term;
+    const fitAddon = termData.fitAddon;
+
+    // 先 fit 唤醒 renderer，再等一帧后多次强制刷新整屏，覆盖 renderer 未就绪的情况
+    const redraw = () => {
+        try {
+            fitAddon.fit();
+        } catch (e) { /* ignore */ }
+        requestAnimationFrame(() => {
+            try {
+                if (term.rows > 0) term.refresh(0, term.rows - 1);
+            } catch (e) {}
+            setTimeout(() => {
+                try {
+                    if (term.rows > 0) term.refresh(0, term.rows - 1);
+                } catch (e) {}
+            }, 80);
+            setTimeout(() => {
+                try {
+                    if (term.rows > 0) term.refresh(0, term.rows - 1);
+                } catch (e) {}
+            }, 200);
+            setTimeout(() => {
+                try {
+                    if (term.rows > 0) term.refresh(0, term.rows - 1);
+                    // 用 resize 再刺激一次 renderer，某些 xterm 版本切回可见时需要
+                    term.resize(term.cols, term.rows);
+                } catch (e) {}
+            }, 400);
+        });
+    };
+
+    // 持续尝试到容器有非零尺寸为止，避免 fit 在 0 尺寸时静默失败
+    let tries = 0;
+    const tryFit = () => {
+        const rect = termData.el.getBoundingClientRect();
+        if (rect && rect.width > 0 && rect.height > 0) {
+            redraw();
+        } else if (tries++ < 60) {
+            setTimeout(tryFit, 30);
+        } else {
+            redraw();
+        }
+    };
+    requestAnimationFrame(() => requestAnimationFrame(tryFit));
+    setTimeout(tryFit, 50);
+    setTimeout(tryFit, 250);
+}
+
+// 为终端挂载 ResizeObserver：容器尺寸变化（含隐藏后恢复可见）时自动重算，彻底避免空白
+function watchTermResize(termData, containerEl) {
+    if (!termData || !containerEl || typeof ResizeObserver === 'undefined') return;
+    try {
+        const ro = new ResizeObserver(() => {
+            if (termData.fitAddon) {
+                try {
+                    termData.fitAddon.fit();
+                    const t = termData.term;
+                    if (t && t.rows > 0) t.refresh(0, t.rows - 1);
+                } catch (e) {}
+            }
+        });
+        ro.observe(containerEl);
+        termData._ro = ro;
+    } catch (e) { /* ignore */ }
+}
+
 function ensureTerminal() {
     const n = state.currentNode;
     if (!n) { toast('请先选择节点', 'error'); return; }
@@ -1070,7 +1164,12 @@ function ensureTerminal() {
         const div = document.getElementById('term-' + n.id);
         if (div) div.classList.add('active');
         state.activeTermId = n.id;
-        setTimeout(() => existing.fitAddon.fit(), 30);
+        // 切回来时如果 WS 已断开，立即重连，避免空白
+        if (existing.ws && existing.ws.readyState !== WebSocket.OPEN && existing.ws.readyState !== WebSocket.CONNECTING) {
+            existing.term.write('\x1b[33m\r\n[重新连接中…]\x1b[0m\r\n');
+            connectTermWS(n.id);
+        }
+        refitTerm(existing);
         return;
     }
     createTerminal(n);
@@ -1101,12 +1200,13 @@ function createTerminal(node) {
     term.open(div);
     if (fitAddon) setTimeout(() => fitAddon.fit(), 30);
 
-    const termData = { term, fitAddon, ws: null, buf: '' };
+    const termData = { term, fitAddon, ws: null, buf: '', el: div };
     state.terms[node.id] = termData;
     state.activeTermId = node.id;
 
     term.onData((data) => handleTermInput(node.id, data));
     connectTermWS(node.id);
+    watchTermResize(termData, div);
     return termData;
 }
 
@@ -1115,9 +1215,23 @@ function connectTermWS(nodeId) {
     if (!termData) return;
     const wsUrl = (location.protocol === 'https:' ? 'wss://' : 'ws://') +
         location.host + '/api/nodes/' + nodeId + '/terminal?token=' + encodeURIComponent(state.token);
+
+    // 清理旧连接和心跳定时器
+    if (termData._pingTimer) { clearInterval(termData._pingTimer); termData._pingTimer = null; }
+    if (termData.ws) { try { termData.ws.onclose = null; termData.ws.close(); } catch (e) {} }
+
     const ws = new WebSocket(wsUrl);
     termData.ws = ws;
-    ws.onopen = () => { termData.term.write('\x1b[32m[已连接]\x1b[0m\r\n'); };
+    termData._closed = false;
+    ws.onopen = () => {
+        termData.term.write('\x1b[32m[已连接]\x1b[0m\r\n');
+        // 心跳保活：每 25s 发一个 ping，防止空闲被中间层断开
+        termData._pingTimer = setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                try { ws.send(JSON.stringify({ type: 'ping' })); } catch (e) {}
+            }
+        }, 25000);
+    };
     ws.onmessage = (e) => {
         try {
             const msg = JSON.parse(e.data);
@@ -1127,8 +1241,18 @@ function connectTermWS(nodeId) {
         } catch (err) { /* ignore */ }
     };
     ws.onclose = () => {
-        if (state.terms[nodeId]) termData.term.write('\x1b[33m\r\n[连接已断开]\x1b[0m\r\n');
+        if (termData._pingTimer) { clearInterval(termData._pingTimer); termData._pingTimer = null; }
+        if (state.terms[nodeId] && !termData._closed) {
+            termData.term.write('\x1b[33m\r\n[连接已断开，3 秒后重连…]\x1b[0m\r\n');
+            // 自动重连：3 秒后重连，避免切回来时空白
+            setTimeout(() => {
+                if (state.terms[nodeId] && state.currentTab === 'terminal' && state.currentNode && state.currentNode.id === nodeId) {
+                    connectTermWS(nodeId);
+                }
+            }, 3000);
+        }
     };
+    ws.onerror = () => { try { ws.close(); } catch (e) {} };
 }
 
 function handleTermInput(nodeId, data) {
@@ -1158,6 +1282,7 @@ function handleTermInput(nodeId, data) {
 function destroyTerminal(nodeId) {
     const t = state.terms[nodeId];
     if (!t) return;
+    if (t._ro) { try { t._ro.disconnect(); } catch (e) {} }
     if (t.ws) t.ws.close();
     if (t.term) t.term.dispose();
     delete state.terms[nodeId];
@@ -1295,12 +1420,18 @@ function bindEvents() {
     };
 
     // 终端自适应
-    window.addEventListener('resize', debounce(() => {
+    const refitActive = debounce(() => {
         const t = state.terms[state.activeTermId];
-        if (t && t.fitAddon) t.fitAddon.fit();
+        if (t) refitTerm(t);
         const st = state.srvTerms[state.activeSrvTermId];
-        if (st && st.fitAddon) st.fitAddon.fit();
-    }, 100));
+        if (st) refitTerm(st);
+    }, 100);
+    window.addEventListener('resize', refitActive);
+    // 切回浏览器标签页 / 窗口重新聚焦时也重绘终端，避免空白
+    document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) refitActive();
+    });
+    window.addEventListener('focus', refitActive);
 }
 
 // ===== 主题切换 =====
@@ -1371,7 +1502,7 @@ async function init() {
     bindEvents();
     renderQuickCmds();
     try {
-        await loadNodes();
+        await loadNodes(true);
         restoreUI();
     } catch (e) { /* 401 会在 api() 中处理跳转 */ }
 }

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -10,6 +11,7 @@ import (
 	"mayfly/internal/model"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gorilla/websocket"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -96,6 +98,32 @@ func (h *ServerTerminalHandler) Handle(c *gin.Context) {
 		defer writeMu.Unlock()
 		_ = conn.WriteJSON(msg)
 	}
+
+	// WebSocket 保活：设置读超时 + 定期发 ping，防止空闲被中间层断开
+	conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+	conn.SetPongHandler(func(string) error {
+		conn.SetReadDeadline(time.Now().Add(60 * time.Second))
+		return nil
+	})
+	pingCtx, pingCancel := context.WithCancel(context.Background())
+	defer pingCancel()
+	go func() {
+		ticker := time.NewTicker(25 * time.Second)
+		defer ticker.Stop()
+		for {
+			select {
+			case <-pingCtx.Done():
+				return
+			case <-ticker.C:
+				writeMu.Lock()
+				err := conn.WriteMessage(websocket.PingMessage, nil)
+				writeMu.Unlock()
+				if err != nil {
+					return
+				}
+			}
+		}
+	}()
 
 	// 连接 SSH
 	client, err := ssh.Dial("tcp", address, cfg)

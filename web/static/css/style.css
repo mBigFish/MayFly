@@ -786,8 +786,11 @@ body,
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    position: relative;
 }
 
+/* 用 visibility 隐藏非活动面板（而非 display:none），使含 xterm 的
+   终端容器始终保有布局尺寸，切换回来时无需重新 fit 也不会空白 */
 .panel-card .tab-panel.active {
     flex: 1;
     display: flex;
@@ -1583,15 +1586,30 @@ select.form-control { cursor: pointer; }
 }
 
 /* ===== 标签面板 ===== */
-.tab-panel { display: none; }
-.tab-panel.active { display: flex; }
+/* 用 visibility 隐藏而非 display:none，使面板始终保有布局尺寸，
+   含 xterm 的终端面板切换回来时无需重新 fit，也不会空白 */
+.tab-panel {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    position: absolute;
+    inset: 0;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
+}
+.tab-panel.active {
+    visibility: visible;
+    opacity: 1;
+    pointer-events: auto;
+    position: relative;
+    z-index: 1;
+}
 
 /* 文件面板滚动 */
 #panel-file { overflow-y: auto; }
 #panel-db { overflow-y: auto; }
-
-/* 终端实例填充 */
-.terminal-instance { flex: 1; min-height: 0; }
 .panel-toolbar {
     display: flex;
     align-items: center;
@@ -1632,12 +1650,28 @@ select.form-control { cursor: pointer; }
 .db-result-msg.error { color: var(--danger); }
 
 /* ===== 终端容器 ===== */
+#terminalWrap {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    min-height: 0;
+    flex: 1;
+}
 .terminal-instance {
     width: 100%;
-    height: 100%;
     display: none;
 }
-.terminal-instance.active { display: block; flex: 1; min-height: 0; }
+.terminal-instance.active {
+    display: flex;
+    flex-direction: column;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+}
+.terminal-instance.active .xterm {
+    flex: 1;
+    min-height: 0;
+}
 
 .muted { color: var(--text-muted); }
 
