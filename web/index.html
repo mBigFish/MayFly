@@ -4,6 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Mayfly - WebShell 管理</title>
+    <script>
+        (function () {
+            try {
+                var t = localStorage.getItem('mayfly_theme');
+                if (t !== 'frosted' && t !== 'glass' && t !== 'dark') t = 'frosted';
+                document.documentElement.setAttribute('data-theme', t);
+            } catch (e) {}
+        })();
+    </script>
     <link rel="stylesheet" href="/static/css/style.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <script src="https://cdn.jsdelivr.net/npm/xterm@5.3.0/lib/xterm.min.js"></script>
@@ -21,7 +30,11 @@
                 <span class="sidebar-title">Mayfly</span>
             </div>
             <nav class="sidebar-nav">
-                <div class="nav-item active" data-tab="file">
+                <div class="nav-item active" data-view="connections">
+                    <i class="fas fa-server"></i>
+                    <span>连接列表</span>
+                </div>
+                <div class="nav-item" data-tab="file">
                     <i class="fas fa-folder-open"></i>
                     <span>文件管理</span>
                 </div>
@@ -36,6 +49,14 @@
                 <div class="nav-item" data-tab="db">
                     <i class="fas fa-database"></i>
                     <span>数据库</span>
+                </div>
+                <div class="nav-item" data-view="reverse-shell">
+                    <i class="fas fa-network-wired"></i>
+                    <span>反弹Shell</span>
+                </div>
+                <div class="nav-item" data-view="servers">
+                    <i class="fas fa-server"></i>
+                    <span>资源管理</span>
                 </div>
             </nav>
             <div class="sidebar-footer">
@@ -69,23 +90,60 @@
                     <span class="breadcrumb">节点列表 / <span id="currentNodeTitle"><span class="muted">未选择节点</span></span></span>
                 </div>
                 <div class="header-right">
-                    <button class="btn btn-primary" id="addNodeBtn"><i class="fas fa-plus"></i> 添加节点</button>
-                    <button class="btn btn-secondary" id="connectBtn"><i class="fas fa-plug"></i> 连接测试</button>
-                    <button class="btn btn-danger" id="deleteNodeBtn"><i class="fas fa-trash"></i> 删除</button>
-                    <div class="user-info">
-                        <i class="fas fa-user-circle"></i>
-                        <span id="username">admin</span>
+                    <div class="header-search" id="headerSearchWrap">
+                        <i class="fas fa-search"></i>
+                        <input type="text" id="headerSearch" placeholder="搜索节点...">
                     </div>
-                    <button class="logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> 退出</button>
+                    <button class="header-icon-btn" id="notifyBtn" title="通知">
+                        <i class="fas fa-bell"></i>
+                        <span class="badge-dot"></span>
+                    </button>
+                    <div class="theme-dropdown" id="themeDropdown">
+                        <button class="header-icon-btn" id="settingsBtn" title="外观设置">
+                            <i class="fas fa-cog"></i>
+                        </button>
+                        <div class="dropdown-menu theme-menu" id="themeMenu">
+                            <div class="dropdown-item theme-item" data-theme="frosted">
+                                <i class="fas fa-snowflake"></i>
+                                <span>毛玻璃效果</span>
+                            </div>
+                            <div class="dropdown-item theme-item" data-theme="glass">
+                                <i class="fas fa-gem"></i>
+                                <span>玻璃效果</span>
+                            </div>
+                            <div class="dropdown-item theme-item" data-theme="dark">
+                                <i class="fas fa-moon"></i>
+                                <span>黑夜效果</span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="user-dropdown" id="userDropdown">
+                        <div class="user-avatar">
+                            <i class="fas fa-user"></i>
+                        </div>
+                        <span class="user-name" id="username">admin</span>
+                        <i class="fas fa-chevron-down user-chevron"></i>
+                        <div class="dropdown-menu" id="dropdownMenu">
+                            <div class="dropdown-item" id="logoutBtn">
+                                <i class="fas fa-sign-out-alt"></i>
+                                <span>退出登录</span>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </header>
 
             <div class="content-area">
-                <div class="workspace">
+                <!-- 工作区（文件/命令/终端/数据库） -->
+                <div class="workspace hidden" id="workspaceView">
                     <!-- 节点列表 -->
                     <div class="card node-panel">
                         <div class="card-header">
                             <h3><i class="fas fa-list"></i> 节点列表</h3>
+                            <div class="card-header-actions">
+                                <button class="btn btn-secondary btn-sm" id="connectBtn"><i class="fas fa-plug"></i> 测试</button>
+                                <button class="btn btn-secondary btn-sm" id="clearNodeListBtn"><i class="fas fa-eraser"></i> 清空</button>
+                            </div>
                         </div>
                         <div class="search-row">
                             <div class="search-box">
@@ -97,7 +155,7 @@
                             <div id="nodeList" class="node-list">
                                 <div class="empty-state">
                                     <i class="fas fa-inbox"></i>
-                                    <p>暂无节点，点击右上角添加</p>
+                                    <p>暂无已连通节点，请先在连接列表中测试</p>
                                 </div>
                             </div>
                         </div>
@@ -125,14 +183,18 @@
                                 </table>
                             </div>
                             <div id="panel-cmd" class="tab-panel">
-                                <div class="shell-output" id="cmdOutput" style="flex:1; border-radius: 0;"></div>
-                                <div class="shell-input-line">
-                                    <span class="shell-prompt">$</span>
-                                    <input type="text" id="cmdInput" class="shell-input" placeholder="输入命令，按回车执行">
-                                </div>
-                            </div>
+                                                <div class="shell-output" id="cmdOutput" style="flex: 1 1 50%; min-height: 0; border-radius: 0;"></div>
+                                                <div class="cmd-quick-panel">
+                                                    <div class="cmd-quick-header"><i class="fas fa-bolt"></i> 常用命令</div>
+                                                    <div class="cmd-quick-body" id="cmdQuickGrid"></div>
+                                                </div>
+                                                <div class="shell-input-line">
+                                                    <span class="shell-prompt">$</span>
+                                                    <input type="text" id="cmdInput" class="shell-input" placeholder="输入命令，按回车执行">
+                                                </div>
+                                            </div>
                             <div id="panel-terminal" class="tab-panel">
-                                <div id="terminalWrap" style="flex:1; background: #1e1e1e; min-height: 0;"></div>
+                                <div id="terminalWrap" style="flex:1; background: var(--shell-bg); min-height: 0;"></div>
                             </div>
                             <div id="panel-db" class="tab-panel">
                                 <div class="panel-toolbar" style="padding: 16px 20px; border-bottom: 1px solid var(--border-color);">
@@ -172,6 +234,115 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- 连接列表视图 -->
+                <div id="connectionsView" class="connections-view">
+                    <div class="connections-toolbar">
+                        <button class="btn btn-primary btn-sm" id="connAddNodeBtn"><i class="fas fa-plus"></i> 添加节点</button>
+                        <div class="search-box" style="height: 38px; flex: 1; max-width: 300px;">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="connSearch" placeholder="搜索连接名称或URL...">
+                        </div>
+                        <div class="conn-filter-tabs">
+                            <button class="conn-filter-tab active" data-filter="all">全部</button>
+                            <button class="conn-filter-tab" data-filter="ok">已连通</button>
+                            <button class="conn-filter-tab" data-filter="fail">连接失败</button>
+                            <button class="conn-filter-tab" data-filter="untested">未测试</button>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="batchTestAllBtn"><i class="fas fa-bolt"></i> 一键测试全部</button>
+                    </div>
+                    <div id="connGroups" class="conn-groups"></div>
+                </div>
+
+                <!-- 资源管理视图 -->
+                <div id="serversView" class="servers-view hidden">
+                    <div class="connections-toolbar">
+                        <button class="btn btn-primary btn-sm" id="srvAddBtn"><i class="fas fa-plus"></i> 添加服务器</button>
+                        <div class="search-box" style="height: 38px; flex: 1; max-width: 300px;">
+                            <i class="fas fa-search"></i>
+                            <input type="text" id="srvSearch" placeholder="搜索名称、IP或分组...">
+                        </div>
+                        <div class="conn-filter-tabs">
+                            <button class="conn-filter-tab active" data-srv-filter="all">全部</button>
+                        </div>
+                        <button class="btn btn-primary btn-sm" id="srvBatchTestBtn"><i class="fas fa-bolt"></i> 一键测试</button>
+                    </div>
+                    <div id="srvGroups" class="conn-groups"></div>
+                </div>
+
+                <!-- 反弹Shell视图 -->
+                <div id="reverseShellView" class="reverse-shell-view hidden">
+                    <!-- 左侧：监听管理 + 命令生成 -->
+                    <div class="rs-left-panel">
+                        <!-- 监听管理 -->
+                        <div class="card rs-listener-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-headphones"></i> 监听管理</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="rs-listener-form">
+                                    <div class="form-row" style="display:flex;gap:8px;align-items:flex-end;margin-bottom:12px;">
+                                        <div style="flex:1;">
+                                            <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">监听端口</label>
+                                            <input type="number" id="listenerPort" class="form-control" placeholder="4444" value="4444" style="height:36px;">
+                                        </div>
+                                        <button class="btn btn-primary btn-sm" id="startListenerBtn" style="height:36px;"><i class="fas fa-play"></i> 开启监听</button>
+                                    </div>
+                                </div>
+                                <div id="listenerList" class="rs-listener-list"></div>
+                            </div>
+                        </div>
+
+                        <!-- 反弹Shell命令生成 -->
+                        <div class="card rs-payload-card">
+                            <div class="card-header">
+                                <h3><i class="fas fa-code"></i> 反弹Shell命令</h3>
+                            </div>
+                            <div class="card-body">
+                                <div class="rs-payload-form">
+                                    <div style="display:flex;gap:8px;margin-bottom:12px;align-items:flex-end;">
+                                        <div style="flex:1;">
+                                            <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">监听IP</label>
+                                            <input type="text" id="payloadIP" class="form-control" placeholder="你的IP" style="height:36px;">
+                                        </div>
+                                        <div style="width:100px;">
+                                            <label style="font-size:12px;color:var(--text-muted);margin-bottom:4px;display:block;">端口</label>
+                                            <input type="number" id="payloadPort" class="form-control" placeholder="4444" value="4444" style="height:36px;">
+                                        </div>
+                                        <button class="btn btn-primary btn-sm" id="genPayloadBtn" style="height:36px;"><i class="fas fa-magic"></i> 生成</button>
+                                    </div>
+                                    <div class="rs-payload-filter">
+                                        <button class="rs-type-filter active" data-type="all">全部</button>
+                                        <button class="rs-type-filter" data-type="bash">Bash</button>
+                                        <button class="rs-type-filter" data-type="nc">Netcat</button>
+                                        <button class="rs-type-filter" data-type="python">Python</button>
+                                        <button class="rs-type-filter" data-type="php">PHP</button>
+                                        <button class="rs-type-filter" data-type="perl">Perl</button>
+                                        <button class="rs-type-filter" data-type="powershell">PowerShell</button>
+                                        <button class="rs-type-filter" data-type="other">其他</button>
+                                    </div>
+                                </div>
+                                <div id="payloadList" class="rs-payload-list"></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右侧：监听输出 -->
+                    <div class="card rs-output-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-terminal"></i> 监听输出</h3>
+                            <button class="btn btn-secondary btn-sm" id="clearOutputBtn"><i class="fas fa-eraser"></i> 清屏</button>
+                        </div>
+                        <div class="card-body" style="padding:0;flex:1;display:flex;flex-direction:column;min-height:0;">
+                            <div id="listenerOutput" class="rs-output-area">
+                                <div class="rs-output-placeholder">
+                                    <i class="fas fa-satellite-dish"></i>
+                                    <p>选择一个监听端口查看输出</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </main>
     </div>
@@ -202,6 +373,10 @@
                     </select>
                 </div>
                 <div class="form-row">
+                    <label>分组</label>
+                    <input type="text" id="nodeGroup" class="form-control" placeholder="留空为默认分组">
+                </div>
+                <div class="form-row">
                     <label>连接密码</label>
                     <input type="text" id="nodePass" class="form-control" placeholder="默认 mayfly">
                 </div>
@@ -213,6 +388,56 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('nodeModal')">取消</button>
                 <button class="btn btn-primary" id="saveNodeBtn">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 服务器模态框 -->
+    <div id="serverModal" class="modal-overlay" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3 id="serverModalTitle">添加服务器</h3>
+                <button class="modal-close" onclick="closeModal('serverModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <label>服务器名称</label>
+                    <input type="text" id="srvName" class="form-control" placeholder="例如：Web服务器01">
+                </div>
+                <div class="form-row">
+                    <label>分组</label>
+                    <input type="text" id="srvGroup" class="form-control" placeholder="留空为默认分组">
+                </div>
+                <div class="form-row" style="display:flex;gap:12px;">
+                    <div style="flex:1;">
+                        <label>IP 地址</label>
+                        <input type="text" id="srvHost" class="form-control" placeholder="192.168.1.100">
+                    </div>
+                    <div style="width:100px;">
+                        <label>SSH 端口</label>
+                        <input type="number" id="srvPort" class="form-control" placeholder="22" value="22">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <label>SSH 用户名</label>
+                    <input type="text" id="srvUsername" class="form-control" placeholder="root">
+                </div>
+                <div class="form-row">
+                    <label>SSH 密码</label>
+                    <input type="password" id="srvPassword" class="form-control" placeholder="密码（可选，如使用私钥可留空）">
+                </div>
+                <div class="form-row">
+                    <label>SSH 私钥</label>
+                    <textarea id="srvPrivateKey" class="form-control" rows="3" placeholder="-----BEGIN OPENSSH PRIVATE KEY-----&#10;（可选，留空则使用密码认证）&#10;-----END OPENSSH PRIVATE KEY-----"></textarea>
+                </div>
+                <div class="form-row">
+                    <label>描述</label>
+                    <input type="text" id="srvDesc" class="form-control" placeholder="备注信息">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('serverModal')">取消</button>
+                <button class="btn btn-primary" id="saveSrvBtn">保存</button>
             </div>
         </div>
     </div>

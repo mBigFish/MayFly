@@ -33,6 +33,7 @@ func main() {
 	}
 	nodeHandler := handler.NewNodeHandler(nodeStore)
 	termWSHandler := handler.NewTerminalWSHandler(nodeStore)
+	listenerHandler := handler.NewListenerHandler()
 
 	r := gin.Default()
 
@@ -70,6 +71,7 @@ func main() {
 		// 节点管理
 		authAPI.GET("/nodes", nodeHandler.ListNodes)
 		authAPI.POST("/nodes", nodeHandler.CreateNode)
+		authAPI.POST("/nodes/batch-test", nodeHandler.BatchTest)
 		authAPI.PUT("/nodes/:id", nodeHandler.UpdateNode)
 		authAPI.DELETE("/nodes/:id", nodeHandler.DeleteNode)
 
@@ -91,6 +93,21 @@ func main() {
 			nodeGroup.POST("/db", nodeHandler.DBQuery)
 			nodeGroup.GET("/terminal", termWSHandler.Handle)
 		}
+
+		// 反弹Shell监听管理
+		authAPI.POST("/listeners", listenerHandler.StartListener)
+		authAPI.GET("/listeners", listenerHandler.ListListeners)
+		authAPI.GET("/listeners/:id/output", listenerHandler.GetListenerOutput)
+		authAPI.POST("/listeners/:id/stop", listenerHandler.StopListener)
+		authAPI.DELETE("/listeners/:id", listenerHandler.DeleteListener)
+		authAPI.GET("/reverse-shells", listenerHandler.GeneratePayload)
+
+		// 资源管理 - 服务器
+		authAPI.GET("/servers", handler.GetServers)
+		authAPI.POST("/servers", handler.CreateServer)
+		authAPI.PUT("/servers", handler.UpdateServer)
+		authAPI.DELETE("/servers", handler.DeleteServer)
+		authAPI.POST("/servers/test", handler.TestSSHConnection)
 	}
 
 	// 启动服务器

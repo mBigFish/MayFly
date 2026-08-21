@@ -119,13 +119,59 @@ func (h *NodeHandler) DeleteNode(c *gin.Context) {
 
 // TestNode 连接测试
 func (h *NodeHandler) TestNode(c *gin.Context) {
-	cl := clientOf(c)
+	node, ok := c.Get("node")
+	if !ok {
+		c.JSON(http.StatusNotFound, gin.H{"error": "节点不存在"})
+		return
+	}
+	n := node.(*model.Node)
+	cl := service.NewClient(n)
 	info, err := cl.SysInfo()
 	if err != nil {
+		h.store.SetTestResult(n.ID, "fail", err.Error())
 		c.JSON(http.StatusOK, gin.H{"ok": false, "message": err.Error()})
 		return
 	}
+	h.store.SetTestResult(n.ID, "ok", "连接成功")
 	c.JSON(http.StatusOK, gin.H{"ok": true, "message": "连接成功", "info": info})
+}
+
+// BatchTest 批量连接测试
+func (h *NodeHandler) BatchTest(c *gin.Context) {
+	var req struct {
+		IDs []string `json:"ids"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数无效"})
+		return
+	}
+
+	type result struct {
+		ID      string `json:"id"`
+		Name    string `json:"name"`
+		OK      bool   `json:"ok"`
+		Message string `json:"message"`
+		Info    string `json:"info"`
+	}
+
+	results := make([]result, 0, len(req.IDs))
+	for _, id := range req.IDs {
+		node, ok := h.store.Get(id)
+		if !ok {
+			results = append(results, result{ID: id, Name: "", OK: false, Message: "节点不存在"})
+			continue
+		}
+		cl := service.NewClient(node)
+		info, err := cl.SysInfo()
+		if err != nil {
+			h.store.SetTestResult(id, "fail", err.Error())
+			results = append(results, result{ID: id, Name: node.Name, OK: false, Message: err.Error()})
+		} else {
+			h.store.SetTestResult(id, "ok", "连接成功")
+			results = append(results, result{ID: id, Name: node.Name, OK: true, Message: "连接成功", Info: info})
+		}
+	}
+	c.JSON(http.StatusOK, gin.H{"results": results})
 }
 
 // ExecCmd 命令执行

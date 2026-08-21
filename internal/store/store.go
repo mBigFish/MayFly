@@ -6,6 +6,7 @@ import (
 	"path/filepath"
 	"sort"
 	"sync"
+	"time"
 
 	"mayfly/internal/model"
 )
@@ -78,6 +79,22 @@ func (s *Store) Get(id string) (*model.Node, bool) {
 	defer s.mu.RUnlock()
 	n, ok := s.nodes[id]
 	return n, ok
+}
+
+// SetTestResult 记录节点的最近一次连接测试结果并持久化
+func (s *Store) SetTestResult(id string, status, message string) {
+	s.mu.Lock()
+	n, ok := s.nodes[id]
+	if ok {
+		now := time.Now()
+		n.LastTestStatus = status
+		n.LastTestTime = &now
+		n.LastTestMessage = message
+	}
+	s.mu.Unlock()
+	if ok {
+		_ = s.save()
+	}
 }
 
 // Add 新增节点

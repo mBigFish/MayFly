@@ -6,13 +6,32 @@ const state = {
     nodes: [],
     currentNode: null,
     currentTab: 'file',
+    currentView: 'connections', // 'workspace' or 'connections'
     filePath: '',
     editingFile: null,
     terms: {},
     activeTermId: null,
+    connStatus: {}, // { nodeId: { status: 'ok'|'fail'|'testing'|'untested', message, info } }
+    clearedNodes: {}, // 节点列表中已"清空"隐藏的节点 id（不影响连接列表数据）
+    connFilter: 'all',
+    listeners: [],
+    activeListenerId: null,
+    payloads: [],
+    payloadFilter: 'all',
+    listenerPollTimer: null,
+    servers: [],
+    serverGroups: [],
 };
 
 // ===== 工具函数 =====
+function debounce(fn, ms) {
+    let t;
+    return function (...args) {
+        clearTimeout(t);
+        t = setTimeout(() => fn.apply(this, args), ms);
+    };
+}
+
 function api(method, path, body) {
     const headers = { 'Authorization': 'Bearer ' + state.token };
     const opts = { method, headers };
@@ -35,11 +54,24 @@ function toast(msg, type) {
         wrap.id = 'toastWrap';
         document.body.appendChild(wrap);
     }
+    const iconMap = { error: 'fa-times-circle', success: 'fa-check-circle', warning: 'fa-exclamation-circle', info: 'fa-info-circle' };
     const t = document.createElement('div');
     t.className = 'toast ' + (type || 'info');
-    t.innerHTML = '<i class="fas ' + (type === 'error' ? 'fa-times-circle' : type === 'success' ? 'fa-check-circle' : type === 'warning' ? 'fa-exclamation-circle' : 'fa-info-circle') + '"></i><span>' + escapeHtml(msg) + '</span>';
+    t.innerHTML =
+        '<div class="toast-icon"><i class="fas ' + (iconMap[type] || iconMap.info) + '"></i></div>' +
+        '<div class="toast-body">' + escapeHtml(msg) + '</div>' +
+        '<button class="toast-close" title="关闭"><i class="fas fa-times"></i></button>' +
+        '<div class="toast-progress"></div>';
     wrap.appendChild(t);
-    setTimeout(() => t.remove(), 2600);
+
+    const removeToast = () => {
+        if (t.classList.contains('toast-out')) return;
+        t.classList.add('toast-out');
+        setTimeout(() => t.remove(), 300);
+    };
+    t.querySelector('.toast-close').onclick = removeToast;
+    const timer = setTimeout(removeToast, 2600);
+    t.addEventListener('mouseenter', () => clearTimeout(timer));
 }
 
 function logout(expired) {
@@ -149,9 +181,11 @@ function renderNodeList() {
     const list = document.getElementById('nodeList');
     const q = document.getElementById('nodeSearch')?.value?.trim()?.toLowerCase() || '';
     list.innerHTML = '';
-    const nodes = q ? state.nodes.filter((n) => n.name.toLowerCase().includes(q) || n.url.toLowerCase().includes(q)) : state.nodes;
+    // 只显示已连通且未被"清空"的节点
+    const connectedNodes = state.nodes.filter((n) => getConnStatus(n.id).status === 'ok' && !state.clearedNodes[n.id]);
+    const nodes = q ? connectedNodes.filter((n) => n.name.toLowerCase().includes(q) || n.url.toLowerCase().includes(q)) : connectedNodes;
     if (nodes.length === 0) {
-        list.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>' + (state.nodes.length ? '无匹配节点' : '暂无节点，点击右上角添加') + '</p></div>';
+        list.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>' + (connectedNodes.length ? '无匹配节点' : '暂无已连通节点，请先在连接列表中测试') + '</p></div>';
         return;
     }
     nodes.forEach((n) => {
@@ -178,6 +212,7 @@ function renderNodeList() {
 }
 
 function selectNode(node) {
+    delete state.clearedNodes[node.id]; // 重新进入节点列表
     state.currentNode = node;
     state.filePath = '';
     state.editingFile = null;
@@ -205,6 +240,7 @@ function showNodeModal(node) {
     document.getElementById('nodeName').value = node ? node.name : '';
     document.getElementById('nodeURL').value = node ? node.url : '';
     document.getElementById('nodeType').value = node ? node.type : 'php';
+    document.getElementById('nodeGroup').value = node ? (node.group || '') : '';
     document.getElementById('nodePass').value = node ? node.pass : '';
     document.getElementById('nodeRemark').value = node ? node.remark : '';
     openModal('nodeModal');
@@ -215,6 +251,7 @@ async function saveNode() {
         name: document.getElementById('nodeName').value.trim(),
         url: document.getElementById('nodeURL').value.trim(),
         type: document.getElementById('nodeType').value,
+        group: document.getElementById('nodeGroup').value.trim(),
         pass: document.getElementById('nodePass').value.trim() || 'mayfly',
         remark: document.getElementById('nodeRemark').value.trim(),
     };
@@ -233,17 +270,16 @@ async function saveNode() {
     }
 }
 
-async function deleteNode() {
-    const n = state.currentNode;
-    if (!n) { toast('请先选择节点', 'error'); return; }
-    if (!confirm('确定删除节点「' + n.name + '」？')) return;
-    const r = await api('DELETE', '/nodes/' + n.id);
-    if (r.data.error) { toast(r.data.error, 'error'); return; }
-    if (state.terms[n.id]) destroyTerminal(n.id);
+function clearNodeList() {
+    const visible = state.nodes.filter((n) => getConnStatus(n.id).status === 'ok' && !state.clearedNodes[n.id]);
+    if (visible.length === 0) { toast('节点列表已为空', 'warning'); return; }
+    if (!confirm('确定清空节点列表？此操作不会删除连接列表中的数据')) return;
+    visible.forEach((n) => { state.clearedNodes[n.id] = true; });
+    if (state.currentNode && state.terms[state.currentNode.id]) destroyTerminal(state.currentNode.id);
     state.currentNode = null;
     document.getElementById('currentNodeTitle').innerHTML = '<span class="muted">未选择节点</span>';
-    await loadNodes();
-    toast('已删除', 'success');
+    renderNodeList();
+    toast('已清空节点列表', 'success');
 }
 
 async function testNode() {
@@ -260,14 +296,251 @@ async function testNode() {
     }
 }
 
-// ===== 标签页 =====
+// ===== 连接列表 =====
+function getConnGroups() {
+    const q = document.getElementById('connSearch')?.value?.trim()?.toLowerCase() || '';
+    const filtered = q
+        ? state.nodes.filter((n) => n.name.toLowerCase().includes(q) || n.url.toLowerCase().includes(q))
+        : state.nodes;
+    const groups = {};
+    filtered.forEach((n) => {
+        const g = n.group || '默认';
+        if (!groups[g]) groups[g] = [];
+        groups[g].push(n);
+    });
+    // 默认分组排第一
+    const sorted = Object.keys(groups).sort((a, b) => {
+        if (a === '默认') return -1;
+        if (b === '默认') return 1;
+        return a.localeCompare(b);
+    });
+    return sorted.map((g) => ({ name: g, nodes: groups[g] }));
+}
+
+function getConnStatus(nodeId) {
+    const rt = state.connStatus[nodeId];
+    if (rt && rt.status === 'testing') {
+        return rt;
+    }
+    const n = state.nodes.find((x) => x.id === nodeId);
+    if (n && n.last_test_status) {
+        return {
+            status: n.last_test_status,
+            message: n.last_test_message || '',
+            info: rt ? rt.info : '',
+        };
+    }
+    return rt || { status: 'untested', message: '', info: '' };
+}
+
+function renderConnList() {
+    const container = document.getElementById('connGroups');
+    const groups = getConnGroups();
+    if (groups.length === 0) {
+        container.innerHTML = '<div class="conn-empty"><i class="fas fa-server"></i><p>' + (state.nodes.length ? '无匹配连接' : '暂无连接，请先添加节点') + '</p></div>';
+        return;
+    }
+    container.innerHTML = '';
+    groups.forEach((grp) => {
+        const visibleNodes = grp.nodes.filter((n) => {
+            if (state.connFilter === 'all') return true;
+            const s = getConnStatus(n.id).status;
+            return s === state.connFilter;
+        });
+        if (visibleNodes.length === 0) return;
+
+        const groupEl = document.createElement('div');
+        groupEl.className = 'conn-group';
+
+        // 分组头部
+        const header = document.createElement('div');
+        header.className = 'conn-group-header';
+        header.innerHTML = `
+            <div class="conn-group-title">
+                <i class="fas fa-chevron-down"></i>
+                <span>${escapeHtml(grp.name)}</span>
+                <span class="conn-group-count">${visibleNodes.length}</span>
+            </div>
+            <div class="conn-group-actions">
+                <button class="btn btn-primary btn-sm batch-group-btn" data-group="${escapeHtml(grp.name)}">
+                    <i class="fas fa-bolt"></i> 批量测试
+                </button>
+            </div>
+        `;
+        header.onclick = (e) => {
+            if (e.target.closest('.batch-group-btn')) return;
+            groupEl.classList.toggle('collapsed');
+        };
+        groupEl.appendChild(header);
+
+        // 分组内容
+        const body = document.createElement('div');
+        body.className = 'conn-group-body';
+        visibleNodes.forEach((n) => {
+            const st = getConnStatus(n.id);
+            const testTime = n.last_test_time ? formatTestTime(n.last_test_time) : '';
+            const item = document.createElement('div');
+            item.className = 'conn-item ' + st.status;
+            item.dataset.nodeId = n.id;
+            item.innerHTML = `
+                <div class="conn-item-header">
+                    <span class="conn-item-name">${escapeHtml(n.name)}</span>
+                    <span class="type-badge type-${n.type}">${n.type.toUpperCase()}</span>
+                </div>
+                <div class="conn-item-url">${escapeHtml(n.url)}</div>
+                <div class="conn-item-footer">
+                    <div class="conn-footer-left">
+                        <span class="conn-status ${st.status}">${st.status === 'ok' ? '已连通' : st.status === 'fail' ? '连接失败' : st.status === 'testing' ? '测试中...' : '未测试'}</span>
+                        ${testTime ? `<span class="conn-test-time"><i class="fas fa-clock"></i>${testTime}</span>` : ''}
+                    </div>
+                    <div class="conn-item-actions">
+                        <button class="conn-mini-btn test-single-btn" title="测试此连接"><i class="fas fa-plug"></i></button>
+                        <button class="conn-mini-btn edit-node-btn" title="编辑"><i class="fas fa-edit"></i></button>
+                        <button class="conn-mini-btn danger del-node-btn" title="删除"><i class="fas fa-trash"></i></button>
+                    </div>
+                </div>
+                ${st.message && st.status === 'fail' ? `<div style="font-size:11px;color:var(--danger);word-break:break-all;">${escapeHtml(st.message)}</div>` : ''}
+                ${st.info && st.status === 'ok' ? `<div style="font-size:11px;color:var(--text-muted);word-break:break-all;">${escapeHtml(st.info)}</div>` : ''}
+            `;
+            // 事件绑定
+            item.querySelector('.test-single-btn').onclick = (e) => { e.stopPropagation(); testSingleConn(n.id); };
+            item.querySelector('.edit-node-btn').onclick = (e) => { e.stopPropagation(); showNodeModal(n); };
+            item.querySelector('.del-node-btn').onclick = (e) => { e.stopPropagation(); deleteConnNode(n); };
+            item.onclick = () => {
+                if (st.status === 'ok') {
+                    selectNode(n);
+                    switchTab('file');
+                } else {
+                    toast('该节点未连通，请先测试', 'warning');
+                }
+            };
+            body.appendChild(item);
+        });
+        groupEl.appendChild(body);
+        container.appendChild(groupEl);
+    });
+
+    // 绑定分组批量测试
+    container.querySelectorAll('.batch-group-btn').forEach((btn) => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const groupName = btn.dataset.group;
+            const group = groups.find((g) => g.name === groupName);
+            if (group) batchTest(group.nodes.map((n) => n.id));
+        };
+    });
+}
+
+async function batchTest(ids) {
+    if (!ids || ids.length === 0) { toast('没有可测试的连接', 'warning'); return; }
+    // 标记为测试中
+    ids.forEach((id) => {
+        state.connStatus[id] = { status: 'testing', message: '', info: '' };
+    });
+    renderConnList();
+    toast(`正在测试 ${ids.length} 个连接...`, 'info');
+
+    const r = await api('POST', '/nodes/batch-test', { ids });
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    const results = r.data.results || [];
+    let okCount = 0, failCount = 0;
+    results.forEach((res) => {
+        state.connStatus[res.id] = {
+            status: res.ok ? 'ok' : 'fail',
+            message: res.message || '',
+            info: res.info || '',
+        };
+        if (res.ok) okCount++; else failCount++;
+    });
+    renderConnList();
+    toast(`测试完成: ${okCount} 成功, ${failCount} 失败`, okCount > 0 ? 'success' : 'error');
+}
+
+async function testSingleConn(nodeId) {
+    state.connStatus[nodeId] = { status: 'testing', message: '', info: '' };
+    renderConnList();
+    const r = await api('POST', '/nodes/batch-test', { ids: [nodeId] });
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    const res = (r.data.results || [])[0];
+    if (res) {
+        state.connStatus[nodeId] = {
+            status: res.ok ? 'ok' : 'fail',
+            message: res.message || '',
+            info: res.info || '',
+        };
+    }
+    renderConnList();
+}
+
+async function deleteConnNode(node) {
+    if (!confirm('确定删除节点「' + node.name + '」？')) return;
+    const r = await api('DELETE', '/nodes/' + node.id);
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    delete state.connStatus[node.id];
+    await loadNodes();
+    renderConnList();
+    toast('已删除', 'success');
+}
+
+// ===== 标签页 / 视图切换 =====
 function switchTab(tab) {
     state.currentTab = tab;
+    state.currentView = 'workspace';
     document.querySelectorAll('.nav-item').forEach((t) => t.classList.toggle('active', t.dataset.tab === tab));
+    document.getElementById('workspaceView').classList.remove('hidden');
+    document.getElementById('connectionsView').classList.add('hidden');
+    document.getElementById('reverseShellView').classList.add('hidden');
+    document.getElementById('serversView').classList.add('hidden');
+    document.getElementById('headerSearchWrap').style.display = '';
+    document.querySelector('.breadcrumb').innerHTML = '节点列表 / <span id="currentNodeTitle"><span class="muted">未选择节点</span></span>';
     document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
     document.getElementById('panel-' + tab).classList.add('active');
+    renderNodeList();
     updatePanelsForNode();
     if (tab === 'terminal') ensureTerminal();
+}
+
+function switchToConnections() {
+    state.currentView = 'connections';
+    document.querySelectorAll('.nav-item').forEach((t) => t.classList.remove('active'));
+    document.querySelector('.nav-item[data-view="connections"]').classList.add('active');
+    document.getElementById('workspaceView').classList.add('hidden');
+    document.getElementById('fileEditor').classList.add('hidden');
+    document.getElementById('connectionsView').classList.remove('hidden');
+    document.getElementById('reverseShellView').classList.add('hidden');
+    document.getElementById('serversView').classList.add('hidden');
+    document.getElementById('headerSearchWrap').style.display = '';
+    document.querySelector('.breadcrumb').innerHTML = '节点列表 / <span id="currentNodeTitle"><span class="muted">连接列表</span></span>';
+    renderConnList();
+}
+
+function switchToReverseShell() {
+    state.currentView = 'reverse-shell';
+    document.querySelectorAll('.nav-item').forEach((t) => t.classList.remove('active'));
+    document.querySelector('.nav-item[data-view="reverse-shell"]').classList.add('active');
+    document.getElementById('workspaceView').classList.add('hidden');
+    document.getElementById('fileEditor').classList.add('hidden');
+    document.getElementById('connectionsView').classList.add('hidden');
+    document.getElementById('reverseShellView').classList.remove('hidden');
+    document.getElementById('serversView').classList.add('hidden');
+    document.getElementById('headerSearchWrap').style.display = 'none';
+    document.querySelector('.breadcrumb').textContent = '反弹Shell';
+    loadListeners();
+    genPayloads();
+}
+
+function switchToServers() {
+    state.currentView = 'servers';
+    document.querySelectorAll('.nav-item').forEach((t) => t.classList.remove('active'));
+    document.querySelector('.nav-item[data-view="servers"]').classList.add('active');
+    document.getElementById('workspaceView').classList.add('hidden');
+    document.getElementById('fileEditor').classList.add('hidden');
+    document.getElementById('connectionsView').classList.add('hidden');
+    document.getElementById('reverseShellView').classList.add('hidden');
+    document.getElementById('serversView').classList.remove('hidden');
+    document.getElementById('headerSearchWrap').style.display = 'none';
+    document.querySelector('.breadcrumb').textContent = '资源管理';
+    loadServers();
 }
 
 // ===== 命令执行 =====
@@ -279,6 +552,7 @@ async function runCmd() {
     if (!cmd) return;
     const out = document.getElementById('cmdOutput');
     out.textContent += '\n> ' + cmd + '\n';
+    input.value = '';
     const r = await api('POST', '/nodes/' + n.id + '/cmd', { cmd });
     if (r.data.error) {
         out.textContent += '[错误] ' + r.data.error + '\n';
@@ -287,8 +561,49 @@ async function runCmd() {
         if (r.data.output && !r.data.output.endsWith('\n')) out.textContent += '\n';
     }
     out.scrollTop = out.scrollHeight;
-    input.value = '';
     input.focus();
+}
+
+// ===== 命令快捷面板 =====
+const quickCommands = [
+    { group: '系统信息', cmds: ['id', 'whoami', 'uname -a', 'hostname', 'pwd'] },
+    { group: '网络配置', cmds: ['ifconfig', 'ip addr', 'netstat -antp', 'ss -antp'] },
+    { group: '进程与资源', cmds: ['ps aux', 'df -h', 'free -m', 'ls -la'] },
+    { group: '用户管理', cmds: ['cat /etc/passwd', 'w', 'who', 'useradd test'] },
+];
+
+function renderQuickCmds() {
+    const grid = document.getElementById('cmdQuickGrid');
+    if (!grid) return;
+    grid.innerHTML = '';
+    quickCommands.forEach((g) => {
+        const group = document.createElement('div');
+        group.className = 'cmd-quick-group';
+        const title = document.createElement('div');
+        title.className = 'cmd-quick-group-title';
+        title.textContent = g.group;
+        group.appendChild(title);
+        const wrap = document.createElement('div');
+        wrap.className = 'cmd-quick-grid';
+        g.cmds.forEach((cmd) => {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.className = 'cmd-quick-btn';
+            btn.textContent = cmd;
+            btn.title = '执行 ' + cmd;
+            btn.onclick = () => runQuickCmd(cmd);
+            wrap.appendChild(btn);
+        });
+        group.appendChild(wrap);
+        grid.appendChild(group);
+    });
+}
+
+function runQuickCmd(cmd) {
+    const input = document.getElementById('cmdInput');
+    if (!input) return;
+    input.value = cmd;
+    runCmd();
 }
 
 // ===== 文件管理 =====
@@ -514,11 +829,7 @@ function createTerminal(node) {
         fontSize: 14,
         fontFamily: 'Menlo, Monaco, Consolas, monospace',
         cursorBlink: true,
-        theme: {
-            background: '#1e1e1e', foreground: '#d4d4d4', cursor: '#d4d4d4',
-            black: '#1e1e1e', red: '#f48771', green: '#89d185', yellow: '#dcdcaa',
-            blue: '#569cd6', magenta: '#c586c0', cyan: '#4ec9b0', white: '#d4d4d4',
-        },
+        theme: getTerminalTheme(),
         scrollback: 10000,
     });
 
@@ -599,19 +910,96 @@ function destroyTerminal(nodeId) {
 
 // ===== 事件绑定 =====
 function bindEvents() {
-    document.getElementById('addNodeBtn').onclick = () => showNodeModal(null);
     document.getElementById('saveNodeBtn').onclick = saveNode;
-    document.getElementById('deleteNodeBtn').onclick = deleteNode;
+    document.getElementById('clearNodeListBtn').onclick = clearNodeList;
     document.getElementById('connectBtn').onclick = testNode;
     document.getElementById('logoutBtn').onclick = () => {
         if (confirm('确定退出登录？')) logout(false);
     };
 
-    document.querySelectorAll('.nav-item').forEach((t) => {
-        t.onclick = () => switchTab(t.dataset.tab);
+    // 用户下拉菜单
+    const userDropdown = document.getElementById('userDropdown');
+    userDropdown.onclick = (e) => {
+        e.stopPropagation();
+        userDropdown.classList.toggle('open');
+    };
+    document.addEventListener('click', () => userDropdown.classList.remove('open'));
+
+    // 顶部搜索框联动节点搜索
+    document.getElementById('headerSearch').oninput = debounce((e) => {
+        const nodeSearch = document.getElementById('nodeSearch');
+        nodeSearch.value = e.target.value;
+        renderNodeList();
+    }, 150);
+
+    // 通知按钮
+    document.getElementById('notifyBtn').onclick = () => toast('暂无新通知', 'info');
+
+    // 外观设置下拉菜单
+    const themeDropdown = document.getElementById('themeDropdown');
+    document.getElementById('settingsBtn').onclick = (e) => {
+        e.stopPropagation();
+        themeDropdown.classList.toggle('open');
+    };
+    document.addEventListener('click', () => themeDropdown.classList.remove('open'));
+    document.querySelectorAll('.theme-item').forEach((item) => {
+        item.onclick = (e) => {
+            e.stopPropagation();
+            applyTheme(item.dataset.theme);
+            themeDropdown.classList.remove('open');
+            toast('已切换为「' + (THEME_NAMES[item.dataset.theme] || item.dataset.theme) + '」', 'success');
+        };
     });
 
-    document.getElementById('nodeSearch').oninput = renderNodeList;
+    document.querySelectorAll('.nav-item').forEach((t) => {
+        t.onclick = () => {
+            if (t.dataset.view === 'connections') switchToConnections();
+            else if (t.dataset.view === 'reverse-shell') switchToReverseShell();
+            else if (t.dataset.view === 'servers') switchToServers();
+            else if (t.dataset.tab) switchTab(t.dataset.tab);
+        };
+    });
+
+    document.getElementById('nodeSearch').oninput = debounce(renderNodeList, 150);
+
+    // 连接列表
+    document.getElementById('connSearch').oninput = debounce(renderConnList, 150);
+    document.getElementById('connAddNodeBtn').onclick = () => showNodeModal(null);
+    document.getElementById('batchTestAllBtn').onclick = () => {
+        const allIds = state.nodes.map((n) => n.id);
+        batchTest(allIds);
+    };
+
+    // 资源管理 - 服务器
+    document.getElementById('srvSearch').oninput = debounce(renderServerList, 150);
+    document.getElementById('srvAddBtn').onclick = () => showServerModal(null);
+    document.getElementById('saveSrvBtn').onclick = saveServer;
+    document.getElementById('srvBatchTestBtn').onclick = batchTestServers;
+    document.querySelectorAll('.conn-filter-tab').forEach((tab) => {
+        tab.onclick = () => {
+            document.querySelectorAll('.conn-filter-tab').forEach((t) => t.classList.remove('active'));
+            tab.classList.add('active');
+            state.connFilter = tab.dataset.filter;
+            renderConnList();
+        };
+    });
+
+    // 反弹Shell
+    document.getElementById('startListenerBtn').onclick = startListener;
+    document.getElementById('genPayloadBtn').onclick = genPayloads;
+    document.getElementById('clearOutputBtn').onclick = () => {
+        if (state.activeListenerId) {
+            document.getElementById('listenerOutput').textContent = '';
+        }
+    };
+    document.querySelectorAll('.rs-type-filter').forEach((btn) => {
+        btn.onclick = () => {
+            document.querySelectorAll('.rs-type-filter').forEach((b) => b.classList.remove('active'));
+            btn.classList.add('active');
+            state.payloadFilter = btn.dataset.type;
+            renderPayloads();
+        };
+    });
 
     // 命令执行
     document.getElementById('cmdInput').onkeydown = (e) => { if (e.key === 'Enter') runCmd(); };
@@ -637,20 +1025,425 @@ function bindEvents() {
     };
 
     // 终端自适应
-    window.addEventListener('resize', () => {
+    window.addEventListener('resize', debounce(() => {
         const t = state.terms[state.activeTermId];
         if (t && t.fitAddon) t.fitAddon.fit();
+    }, 100));
+}
+
+// ===== 主题切换 =====
+const THEME_KEY = 'mayfly_theme';
+const THEME_NAMES = { frosted: '毛玻璃效果', glass: '玻璃效果', dark: '黑夜效果' };
+
+function currentTheme() {
+    const t = localStorage.getItem(THEME_KEY);
+    return (t === 'frosted' || t === 'glass' || t === 'dark') ? t : 'frosted';
+}
+
+function getTerminalTheme() {
+    const theme = document.documentElement.getAttribute('data-theme') || 'frosted';
+    if (theme === 'dark') {
+        return {
+            background: '#0d1117', foreground: '#e6edf3', cursor: '#e6edf3',
+            black: '#0d1117', red: '#f48771', green: '#89d185', yellow: '#dcdcaa',
+            blue: '#569cd6', magenta: '#c586c0', cyan: '#4ec9b0', white: '#e6edf3',
+        };
+    }
+    return {
+        background: '#fafbfd', foreground: '#1f2430', cursor: '#1f2430',
+        black: '#1f2430', red: '#d64550', green: '#1a7f37', yellow: '#b08800',
+        blue: '#316dca', magenta: '#8250df', cyan: '#1b7c83', white: '#fafbfd',
+    };
+}
+
+function updateTerminalsTheme() {
+    const t = getTerminalTheme();
+    Object.values(state.terms).forEach((item) => {
+        if (item.term) item.term.options.theme = t;
     });
+}
+
+function applyTheme(theme) {
+    document.documentElement.setAttribute('data-theme', theme);
+    document.querySelectorAll('.theme-item').forEach((el) => {
+        el.classList.toggle('active', el.dataset.theme === theme);
+    });
+    localStorage.setItem(THEME_KEY, theme);
+    updateTerminalsTheme();
+}
+
+function initTheme() {
+    applyTheme(currentTheme());
 }
 
 // ===== 初始化 =====
 async function init() {
     if (!state.token) { window.location.href = '/login'; return; }
+    initTheme();
     document.getElementById('username').textContent = state.user;
     bindEvents();
+    renderQuickCmds();
     try {
         await loadNodes();
+        renderConnList();
     } catch (e) { /* 401 会在 api() 中处理跳转 */ }
 }
 
 document.addEventListener('DOMContentLoaded', init);
+
+// ===== 反弹Shell =====
+async function loadListeners() {
+    const r = await api('GET', '/listeners');
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    state.listeners = r.data.listeners || [];
+    renderListeners();
+}
+
+function renderListeners() {
+    const list = document.getElementById('listenerList');
+    if (state.listeners.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;"><i class="fas fa-info-circle"></i> 暂无监听，输入端口开启监听</div>';
+        return;
+    }
+    list.innerHTML = '';
+    state.listeners.forEach((l) => {
+        const item = document.createElement('div');
+        item.className = 'rs-listener-item' + (l.id === state.activeListenerId ? ' active' : '');
+        item.innerHTML = `
+            <div class="rs-listener-info">
+                <span class="rs-listener-port">:${l.port}</span>
+                <span class="rs-listener-status ${l.status}">${l.status === 'listening' ? '监听中' : '已停止'}</span>
+                <span style="font-size:11px;color:var(--text-muted);">${l.protocol.toUpperCase()}</span>
+            </div>
+            <div class="rs-listener-actions">
+                ${l.status === 'listening' ? `<button class="conn-mini-btn stop-listener-btn" title="停止"><i class="fas fa-stop"></i></button>` : ''}
+                <button class="conn-mini-btn danger del-listener-btn" title="删除"><i class="fas fa-trash"></i></button>
+            </div>
+        `;
+        item.onclick = (e) => {
+            if (e.target.closest('.stop-listener-btn') || e.target.closest('.del-listener-btn')) return;
+            state.activeListenerId = l.id;
+            renderListeners();
+            pollListenerOutput();
+        };
+        const stopBtn = item.querySelector('.stop-listener-btn');
+        if (stopBtn) stopBtn.onclick = async (e) => { e.stopPropagation(); await stopListener(l.id); };
+        item.querySelector('.del-listener-btn').onclick = async (e) => { e.stopPropagation(); await deleteListener(l.id); };
+        list.appendChild(item);
+    });
+}
+
+async function startListener() {
+    const port = parseInt(document.getElementById('listenerPort').value);
+    if (!port || port < 1 || port > 65535) { toast('端口号无效（1-65535）', 'error'); return; }
+    const r = await api('POST', '/listeners', { port, protocol: 'tcp' });
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    toast(`监听端口 ${port} 已开启`, 'success');
+    state.activeListenerId = r.data.id;
+    await loadListeners();
+    startPolling();
+}
+
+async function stopListener(id) {
+    const r = await api('POST', `/listeners/${id}/stop`);
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    toast('监听已停止', 'success');
+    await loadListeners();
+}
+
+async function deleteListener(id) {
+    if (!confirm('确定删除此监听？')) return;
+    const r = await api('DELETE', `/listeners/${id}`);
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    if (state.activeListenerId === id) state.activeListenerId = null;
+    await loadListeners();
+    document.getElementById('listenerOutput').innerHTML = '<div class="rs-output-placeholder"><i class="fas fa-satellite-dish"></i><p>选择一个监听端口查看输出</p></div>';
+    toast('已删除', 'success');
+}
+
+function startPolling() {
+    if (state.listenerPollTimer) clearInterval(state.listenerPollTimer);
+    state.listenerPollTimer = setInterval(pollListenerOutput, 2000);
+}
+
+function stopPolling() {
+    if (state.listenerPollTimer) { clearInterval(state.listenerPollTimer); state.listenerPollTimer = null; }
+}
+
+async function pollListenerOutput() {
+    if (!state.activeListenerId) return;
+    const r = await api('GET', `/listeners/${state.activeListenerId}/output`);
+    if (r.data.error) { stopPolling(); return; }
+    const output = r.data.output || '';
+    const el = document.getElementById('listenerOutput');
+    if (output) {
+        el.textContent = output;
+        el.scrollTop = el.scrollHeight;
+    } else {
+        el.innerHTML = '<div class="rs-output-placeholder"><i class="fas fa-clock"></i><p>等待连接...</p></div>';
+    }
+}
+
+// 生成反弹Shell命令
+async function genPayloads() {
+    const ip = document.getElementById('payloadIP').value.trim();
+    const port = document.getElementById('payloadPort').value.trim();
+    if (!ip || !port) { return; }
+    const r = await api('GET', `/reverse-shells?ip=${encodeURIComponent(ip)}&port=${encodeURIComponent(port)}`);
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    state.payloads = r.data.payloads || [];
+    renderPayloads();
+}
+
+function renderPayloads() {
+    const list = document.getElementById('payloadList');
+    const filtered = state.payloads.filter((p) => {
+        if (state.payloadFilter === 'all') return true;
+        if (state.payloadFilter === 'other') return !['bash','nc','python','php','perl','powershell'].includes(p.type);
+        return p.type === state.payloadFilter;
+    });
+    if (filtered.length === 0) {
+        list.innerHTML = '<div style="text-align:center;padding:20px;color:var(--text-muted);font-size:13px;">输入IP和端口后点击生成</div>';
+        return;
+    }
+    list.innerHTML = '';
+    filtered.forEach((p, i) => {
+        const item = document.createElement('div');
+        item.className = 'rs-payload-item';
+        item.innerHTML = `
+            <div class="rs-payload-header">
+                <span class="rs-payload-name">${escapeHtml(p.name)} <span class="rs-payload-type-badge">${p.type}</span></span>
+                <div class="rs-payload-actions">
+                    <button class="rs-payload-copy-btn" title="复制"><i class="fas fa-copy"></i> 复制</button>
+                </div>
+            </div>
+            <div class="rs-payload-code">${escapeHtml(p.cmd)}</div>
+        `;
+        item.querySelector('.rs-payload-copy-btn').onclick = () => {
+            navigator.clipboard.writeText(p.cmd).then(() => toast('已复制到剪贴板', 'success'));
+        };
+        list.appendChild(item);
+    });
+}
+
+function copyToClipboard(text) {
+    navigator.clipboard.writeText(text).then(() => toast('已复制', 'success'));
+}
+
+// ===== 资源管理 - 服务器 =====
+async function loadServers() {
+    const r = await api('GET', '/servers');
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    state.servers = r.data.servers || [];
+    state.serverGroups = r.data.groups || [];
+    renderServerList();
+}
+
+function renderServerList() {
+    const container = document.getElementById('srvGroups');
+    const keyword = (document.getElementById('srvSearch').value || '').toLowerCase();
+
+    let filtered = state.servers;
+    if (keyword) {
+        filtered = filtered.filter((s) =>
+            (s.name || '').toLowerCase().includes(keyword) ||
+            (s.host || '').toLowerCase().includes(keyword) ||
+            (s.group || '').toLowerCase().includes(keyword) ||
+            (s.username || '').toLowerCase().includes(keyword)
+        );
+    }
+
+    if (filtered.length === 0) {
+        container.innerHTML = `
+            <div class="conn-empty">
+                <i class="fas fa-server"></i>
+                <p>${keyword ? '没有匹配的服务器' : '暂无服务器，点击「添加服务器」开始管理'}</p>
+            </div>`;
+        return;
+    }
+
+    // 按分组组织
+    const groupMap = {};
+    filtered.forEach((s) => {
+        const g = s.group || '默认';
+        if (!groupMap[g]) groupMap[g] = [];
+        groupMap[g].push(s);
+    });
+
+    let html = '';
+    Object.keys(groupMap).sort().forEach((g) => {
+        const items = groupMap[g];
+        html += `
+            <div class="conn-group">
+                <div class="conn-group-header" onclick="this.parentElement.classList.toggle('collapsed')">
+                    <div class="conn-group-info">
+                        <i class="fas fa-chevron-right conn-group-arrow"></i>
+                        <i class="fas fa-folder conn-group-icon"></i>
+                        <span class="conn-group-name">${escapeHtml(g)}</span>
+                        <span class="conn-group-count">${items.length}</span>
+                    </div>
+                </div>
+                <div class="conn-group-body">
+                    ${items.map((s) => renderServerItem(s)).join('')}
+                </div>
+            </div>`;
+    });
+    container.innerHTML = html;
+
+    // 绑定事件
+    container.querySelectorAll('.srv-action-btn[data-act]').forEach((btn) => {
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const id = parseInt(btn.dataset.id);
+            const act = btn.dataset.act;
+            if (act === 'edit') showServerModal(id);
+            else if (act === 'delete') deleteServer(id);
+            else if (act === 'test') testServer(id);
+        };
+    });
+}
+
+function formatTestTime(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    if (isNaN(d.getTime())) return '';
+    const p = (n) => String(n).padStart(2, '0');
+    return `${p(d.getMonth() + 1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}`;
+}
+
+function renderServerItem(s) {
+    const testing = s._testStatus === 'testing';
+    const status = testing ? 'testing' : (s.last_test_status || 'untested');
+    const statusText = { ok: '已连通', fail: '连接失败', testing: '测试中...', untested: '未测试' }[status];
+    const port = s.port || 22;
+    const testTime = s.last_test_time ? formatTestTime(s.last_test_time) : '';
+    const testTip = s.last_test_message ? `title="${escapeHtml(s.last_test_message)}"` : '';
+    const desc = s.description ? `<div class="srv-desc" title="${escapeHtml(s.description)}">${escapeHtml(s.description)}</div>` : '';
+    return `
+        <div class="srv-item ${status}">
+            <div class="srv-head">
+                <div class="srv-icon"><i class="fas fa-server"></i></div>
+                <div class="srv-title">
+                    <div class="srv-name" title="${escapeHtml(s.name || s.host)}">${escapeHtml(s.name || s.host)}</div>
+                    <div class="srv-addr"><span class="mono">${escapeHtml(s.host)}:${port}</span><span class="dot">·</span><span>${escapeHtml(s.username || '未设置用户')}</span></div>
+                </div>
+                <span class="srv-status ${status}" ${testTip}>${statusText}</span>
+            </div>
+            ${desc}
+            <div class="srv-foot">
+                <span class="srv-test-time"><i class="fas fa-clock"></i>${testTime ? '上次测试 ' + testTime : '尚未测试'}</span>
+                <div class="srv-actions">
+                    <button class="srv-action-btn success" data-act="test" data-id="${s.id}"><i class="fas fa-plug"></i>测试</button>
+                    <button class="srv-action-btn" data-act="edit" data-id="${s.id}"><i class="fas fa-edit"></i>编辑</button>
+                    <button class="srv-action-btn danger" data-act="delete" data-id="${s.id}"><i class="fas fa-trash"></i>删除</button>
+                </div>
+            </div>
+        </div>`;
+}
+
+function showServerModal(id) {
+    const modal = document.getElementById('serverModal');
+    const title = document.getElementById('serverModalTitle');
+    if (id) {
+        const s = state.servers.find((x) => x.id === id);
+        if (!s) return;
+        title.textContent = '编辑服务器';
+        document.getElementById('srvName').value = s.name || '';
+        document.getElementById('srvGroup').value = s.group || '';
+        document.getElementById('srvHost').value = s.host || '';
+        document.getElementById('srvPort').value = s.port || 22;
+        document.getElementById('srvUsername').value = s.username || '';
+        document.getElementById('srvPassword').value = s.password || '';
+        document.getElementById('srvPrivateKey').value = s.private_key || '';
+        document.getElementById('srvDesc').value = s.description || '';
+        modal.dataset.editId = id;
+    } else {
+        title.textContent = '添加服务器';
+        document.getElementById('srvName').value = '';
+        document.getElementById('srvGroup').value = '';
+        document.getElementById('srvHost').value = '';
+        document.getElementById('srvPort').value = '22';
+        document.getElementById('srvUsername').value = '';
+        document.getElementById('srvPassword').value = '';
+        document.getElementById('srvPrivateKey').value = '';
+        document.getElementById('srvDesc').value = '';
+        delete modal.dataset.editId;
+    }
+    modal.style.display = 'flex';
+}
+
+async function saveServer() {
+    const modal = document.getElementById('serverModal');
+    const editId = modal.dataset.editId;
+    const data = {
+        name: document.getElementById('srvName').value.trim(),
+        group: document.getElementById('srvGroup').value.trim(),
+        host: document.getElementById('srvHost').value.trim(),
+        port: parseInt(document.getElementById('srvPort').value) || 22,
+        username: document.getElementById('srvUsername').value.trim(),
+        password: document.getElementById('srvPassword').value,
+        private_key: document.getElementById('srvPrivateKey').value.trim(),
+        description: document.getElementById('srvDesc').value.trim(),
+    };
+    if (!data.host || !data.username) { toast('IP地址和用户名不能为空', 'error'); return; }
+
+    if (editId) {
+        data.id = parseInt(editId);
+        const r = await api('PUT', '/servers', data);
+        if (r.data.error) { toast(r.data.error, 'error'); return; }
+        toast('更新成功', 'success');
+    } else {
+        const r = await api('POST', '/servers', data);
+        if (r.data.error) { toast(r.data.error, 'error'); return; }
+        toast('创建成功', 'success');
+    }
+    closeModal('serverModal');
+    await loadServers();
+}
+
+async function deleteServer(id) {
+    if (!confirm('确定删除此服务器？')) return;
+    const r = await api('DELETE', '/servers', { id });
+    if (r.data.error) { toast(r.data.error, 'error'); return; }
+    toast('已删除', 'success');
+    await loadServers();
+}
+
+async function testServer(id) {
+    const s = state.servers.find((x) => x.id === id);
+    if (!s) return;
+    s._testStatus = 'testing';
+    renderServerList();
+    const r = await api('POST', '/servers/test', {
+        server_id: id,
+        host: s.host, port: s.port, username: s.username,
+        password: s.password, private_key: s.private_key,
+    });
+    if (r.data.success) {
+        toast(`连接成功 — 主机名: ${r.data.hostname}`, 'success');
+    } else {
+        toast(r.data.message || '连接失败', 'error');
+    }
+    // 后端已持久化测试结果，重新加载以渲染最新状态与时间
+    await loadServers();
+}
+
+async function batchTestServers() {
+    if (state.servers.length === 0) { toast('暂无服务器', 'warning'); return; }
+    for (const s of state.servers) {
+        s._testStatus = 'testing';
+    }
+    renderServerList();
+    for (const s of state.servers) {
+        const r = await api('POST', '/servers/test', {
+            server_id: s.id,
+            host: s.host, port: s.port, username: s.username,
+            password: s.password, private_key: s.private_key,
+        });
+        s._testStatus = r.data.success ? 'ok' : 'fail';
+        renderServerList();
+    }
+    await loadServers();
+    const ok = state.servers.filter((s) => s.last_test_status === 'ok').length;
+    toast(`测试完成：${ok}/${state.servers.length} 连通`, ok === state.servers.length ? 'success' : 'warning');
+}
