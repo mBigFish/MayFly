@@ -1076,11 +1076,23 @@ function initTheme() {
     applyTheme(currentTheme());
 }
 
+// 浏览器刷新/后退时会自动恢复输入框内未提交的历史内容，
+// 这里清空搜索框、命令框等，避免出现"自动输入文字"的假象。
+function clearAutoFilledInputs() {
+    ['headerSearch', 'nodeSearch', 'connSearch', 'srvSearch', 'cmdInput'].forEach((id) => {
+        const el = document.getElementById(id);
+        if (el) el.value = '';
+    });
+}
+
 // ===== 初始化 =====
 async function init() {
     if (!state.token) { window.location.href = '/login'; return; }
     initTheme();
     document.getElementById('username').textContent = state.user;
+    // 阻止浏览器刷新时自动恢复输入框历史内容（搜索框/命令框被自动填入）
+    clearAutoFilledInputs();
+    setTimeout(clearAutoFilledInputs, 200);
     bindEvents();
     renderQuickCmds();
     try {
