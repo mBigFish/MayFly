@@ -731,6 +731,7 @@ body,
     padding: 20px;
     display: flex;
     flex-direction: column;
+    position: relative;
     contain: layout style;
 }
 
@@ -2554,6 +2555,17 @@ html[data-theme="glass"] .conn-empty i { color: #d5dae6; }
     display: flex;
     overflow: hidden;
     min-height: 0;
+}
+/* 服务器终端视图隐藏时用 visibility 而非 display:none，保留 xterm 容器的布局尺寸，
+   避免切换到其他页面再切回来时终端空白（需要再点一次才恢复） */
+.server-term-view.hidden {
+    display: flex !important;
+    position: absolute;
+    inset: 0;
+    visibility: hidden;
+    opacity: 0;
+    pointer-events: none;
+    z-index: 0;
 }
 .server-term-layout {
     flex: 1;

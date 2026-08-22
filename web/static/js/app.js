@@ -617,8 +617,10 @@ function switchToServerTerm() {
     document.getElementById('headerSearchWrap').style.display = 'none';
     document.querySelector('.breadcrumb').textContent = '终端操作';
     renderSrvTermList();
-    const t = state.srvTerms[state.activeSrvTermId];
-    requestAnimationFrame(() => setTimeout(() => refitTerm(t), 30));
+    // 切回时重新激活当前终端实例（等价于点击服务器列表项），确保 active 类和重绘都到位
+    if (state.activeSrvTermId && state.srvTerms[state.activeSrvTermId]) {
+        requestAnimationFrame(() => setTimeout(() => switchSrvTerm(state.activeSrvTermId), 30));
+    }
     persistUI();
 }
 
@@ -1086,10 +1088,18 @@ function refitTerm(termData) {
     const term = termData.term;
     const fitAddon = termData.fitAddon;
 
-    // 先 fit 唤醒 renderer，再等一帧后多次强制刷新整屏，覆盖 renderer 未就绪的情况
+    // 先 fit 唤醒 renderer，再用「resize 抖动」强制重建 canvas，最后多次 refresh 兜底
     const redraw = () => {
         try {
             fitAddon.fit();
+        } catch (e) { /* ignore */ }
+        // 强制触发一次真实的 resize（列数 +1 再还原），让 renderer 完整重绘，
+        // 比 refresh 更可靠，能覆盖从 visibility:hidden 恢复后 canvas 空白的情况
+        try {
+            if (term.cols > 0 && term.rows > 0) {
+                term.resize(term.cols + 1, term.rows);
+                term.resize(term.cols, term.rows);
+            }
         } catch (e) { /* ignore */ }
         requestAnimationFrame(() => {
             try {
@@ -1099,19 +1109,16 @@ function refitTerm(termData) {
                 try {
                     if (term.rows > 0) term.refresh(0, term.rows - 1);
                 } catch (e) {}
-            }, 80);
+            }, 100);
             setTimeout(() => {
                 try {
                     if (term.rows > 0) term.refresh(0, term.rows - 1);
+                    if (term.cols > 0) {
+                        term.resize(term.cols + 1, term.rows);
+                        term.resize(term.cols, term.rows);
+                    }
                 } catch (e) {}
-            }, 200);
-            setTimeout(() => {
-                try {
-                    if (term.rows > 0) term.refresh(0, term.rows - 1);
-                    // 用 resize 再刺激一次 renderer，某些 xterm 版本切回可见时需要
-                    term.resize(term.cols, term.rows);
-                } catch (e) {}
-            }, 400);
+            }, 300);
         });
     };
 
