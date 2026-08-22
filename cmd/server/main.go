@@ -21,6 +21,7 @@ import (
 	"github.com/webshell-manager/webshell-manager/internal/migrations"
 	"github.com/webshell-manager/webshell-manager/internal/protocol"
 	"github.com/webshell-manager/webshell-manager/internal/protocol/adapters"
+	"github.com/webshell-manager/webshell-manager/internal/session"
 	"github.com/webshell-manager/webshell-manager/internal/target"
 	"github.com/webshell-manager/webshell-manager/internal/transport"
 )
@@ -88,6 +89,9 @@ func run() error {
 	protocolReg := protocol.NewRegistry()
 	protocolReg.Register(adapters.NewPHPAdapter(httpTransport))
 
+	// 初始化会话管理器（单用户最多 10 个会话，空闲超时复用 security.session_timeout）。
+	sessionMgr := session.NewManager(10, jwtTTL)
+
 	// 确保初始 admin 用户存在（密码从环境变量读取）。
 	adminPassword := os.Getenv("ADMIN_PASSWORD")
 	if adminPassword == "" {
@@ -104,6 +108,7 @@ func run() error {
 		TargetSvc:   targetSvc,
 		RateLimiter: rateLimiter,
 		ProtocolReg: protocolReg,
+		SessionMgr:  sessionMgr,
 	})
 
 	srv := &http.Server{

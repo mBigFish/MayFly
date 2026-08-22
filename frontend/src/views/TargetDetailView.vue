@@ -43,6 +43,14 @@ function goBack() {
   router.push({ name: 'targets' })
 }
 
+function goFiles() {
+  router.push({ name: 'target-files', params: { id: target.value?.id } })
+}
+
+function goTerminal() {
+  router.push({ name: 'target-terminal', params: { id: target.value?.id } })
+}
+
 onMounted(loadTarget)
 </script>
 
@@ -52,6 +60,8 @@ onMounted(loadTarget)
       <el-button @click="goBack">返回列表</el-button>
       <h2 class="title">{{ target?.name || '目标详情' }}</h2>
       <el-button type="primary" :loading="checking" @click="handleCheck">探活检测</el-button>
+      <el-button @click="goFiles">文件管理</el-button>
+      <el-button type="success" @click="goTerminal">终端</el-button>
     </div>
 
     <template v-if="target">

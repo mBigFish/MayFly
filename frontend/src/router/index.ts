@@ -25,6 +25,16 @@ const routes: RouteRecordRaw[] = [
         name: 'target-detail',
         component: () => import('../views/TargetDetailView.vue'),
       },
+      {
+        path: 'targets/:id/files',
+        name: 'target-files',
+        component: () => import('../views/FileManagerView.vue'),
+      },
+      {
+        path: 'targets/:id/terminal',
+        name: 'target-terminal',
+        component: () => import('../views/TerminalView.vue'),
+      },
     ],
   },
 ]

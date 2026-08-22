@@ -15,8 +15,9 @@
 - **Phase 1**：项目初始化、SQLite、Config、Logger
 - **Phase 2**：User、Login、RBAC、Target CRUD
 - **Phase 3**：Transport、Protocol Interface、Request/Response、Operation
+- **Phase 4**：Operation 完整实现、Session、Terminal（WebSocket + xterm.js）、File Manager
 
-尚未实现：Session、Terminal、File Manager、Plugin、Request Inspector、Audit、Task、Dashboard 等（Phase 4+）。
+尚未实现：Plugin、Request Inspector、Audit、Task、Dashboard 等（Phase 5+）。
 
 ## 目录结构
 
@@ -78,6 +79,17 @@ npm run dev
 | PUT | `/api/v1/targets/:id` | target:update | 更新目标 |
 | DELETE | `/api/v1/targets/:id` | target:delete | 删除目标 |
 | POST | `/api/v1/targets/:id/check` | target:read | 目标探活（Protocol.Check） |
+| GET | `/api/v1/targets/:id/files` | file:read | 列出目录 |
+| POST | `/api/v1/targets/:id/files/read` | file:read | 读取文件 |
+| POST | `/api/v1/targets/:id/files/write` | file:write | 写入文件 |
+| POST | `/api/v1/targets/:id/files/rename` | file:write | 重命名 |
+| POST | `/api/v1/targets/:id/files/mkdir` | file:write | 创建目录 |
+| POST | `/api/v1/targets/:id/files/delete` | file:delete | 删除 |
+| POST | `/api/v1/sessions` | - | 创建会话 |
+| GET | `/api/v1/sessions` | - | 会话列表 |
+| DELETE | `/api/v1/sessions/:id` | - | 关闭会话 |
+
+WebSocket：`/ws/v1/session/:id?token=<jwt>`（终端）。
 
 鉴权方式：请求头 `Authorization: Bearer <token>`。
 

