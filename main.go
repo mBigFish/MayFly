@@ -110,6 +110,10 @@ func main() {
 		authAPI.DELETE("/listeners/:id", listenerHandler.DeleteListener)
 		authAPI.GET("/reverse-shells", listenerHandler.GeneratePayload)
 
+		// 仪表盘
+		dashHandler := handler.NewDashboardHandler(nodeStore, cmdHistoryStore)
+		authAPI.GET("/dashboard", dashHandler.Dashboard)
+
 		// 资源管理 - 服务器
 		authAPI.GET("/servers", handler.GetServers)
 		authAPI.POST("/servers", handler.CreateServer)

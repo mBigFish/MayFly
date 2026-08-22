@@ -237,6 +237,7 @@ function persistUI() {
 function restoreUI() {
     const v = state.currentView;
 
+    if (v === 'dashboard') { switchToDashboard(); return; }
     if (v === 'reverse-shell') { switchToReverseShell(); return; }
     if (v === 'servers') { switchToServers(); return; }
     if (v === 'server-term') { switchToServerTerm(); restoreSrvTerms(); return; }
@@ -537,6 +538,7 @@ function switchTab(tab) {
     state.currentView = 'workspace';
     document.querySelectorAll('.nav-item').forEach((t) => t.classList.toggle('active', t.dataset.tab === tab));
     document.getElementById('workspaceView').classList.remove('hidden');
+    document.getElementById('dashboardView').classList.add('hidden');
     document.getElementById('connectionsView').classList.add('hidden');
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.add('hidden');
@@ -554,12 +556,146 @@ function switchTab(tab) {
     persistUI();
 }
 
+function switchToDashboard() {
+    state.currentView = 'dashboard';
+    document.querySelectorAll('.nav-item').forEach((t) => t.classList.remove('active'));
+    document.querySelector('.nav-item[data-view="dashboard"]').classList.add('active');
+    document.getElementById('workspaceView').classList.add('hidden');
+    document.getElementById('fileEditor').classList.add('hidden');
+    document.getElementById('dashboardView').classList.remove('hidden');
+    document.getElementById('connectionsView').classList.add('hidden');
+    document.getElementById('reverseShellView').classList.add('hidden');
+    document.getElementById('serversView').classList.add('hidden');
+    document.getElementById('serverTermView').classList.add('hidden');
+    document.getElementById('headerSearchWrap').style.display = 'none';
+    document.querySelector('.breadcrumb').textContent = '仪表盘';
+    loadDashboard();
+    persistUI();
+}
+
+// ===== 仪表盘数据加载与渲染 =====
+async function loadDashboard() {
+    try {
+        const r = await api('GET', '/dashboard');
+        if (r.status === 401) return;
+        renderDashboard(r.data);
+    } catch (e) {
+        console.error('loadDashboard error:', e);
+    }
+}
+
+function renderDashboard(d) {
+    // 统计卡片
+    document.getElementById('dashNodeTotal').textContent = d.nodes.total;
+    document.getElementById('dashNodeOnline').textContent = d.nodes.online;
+    document.getElementById('dashNodeOffline').textContent = d.nodes.offline;
+    document.getElementById('dashSrvTotal').textContent = d.servers.total;
+    document.getElementById('dashSrvOnline').textContent = d.servers.online;
+    document.getElementById('dashSrvOffline').textContent = d.servers.offline;
+    document.getElementById('dashListenerTotal').textContent = d.listeners.total;
+    document.getElementById('dashListenerActive').textContent = d.listeners.active;
+
+    // 分组数 = 节点分组 + 服务器分组（去重）
+    const allGroups = new Set([
+        ...Object.keys(d.nodes.groups || {}),
+        ...Object.keys(d.servers.groups || {}),
+    ]);
+    document.getElementById('dashGroupTotal').textContent = allGroups.size;
+    document.getElementById('dashGroupSub').textContent = allGroups.size > 0
+        ? '节点 ' + Object.keys(d.nodes.groups || {}).length + ' / 服务器 ' + Object.keys(d.servers.groups || {}).length
+        : '-';
+
+    // 节点类型分布条形图
+    const typeEl = document.getElementById('dashTypeChart');
+    const types = d.nodes.types || {};
+    const typeKeys = Object.keys(types);
+    if (typeKeys.length === 0) {
+        typeEl.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无节点数据</p></div>';
+    } else {
+        const maxVal = Math.max(...Object.values(types), 1);
+        typeEl.innerHTML = '<div class="dash-type-bars">' + typeKeys.map((k) =>
+            '<div class="dash-type-row">' +
+                '<div class="dash-type-label">' + escapeHtml(k) + '</div>' +
+                '<div class="dash-type-bar-wrap"><div class="dash-type-bar ' + esc(k) + '" style="width:' + Math.round(types[k] / maxVal * 100) + '%"></div></div>' +
+                '<div class="dash-type-count">' + types[k] + '</div>' +
+            '</div>'
+        ).join('') + '</div>';
+    }
+
+    // 分组概览
+    const groupEl = document.getElementById('dashGroupOverview');
+    if (allGroups.size === 0) {
+        groupEl.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无分组</p></div>';
+    } else {
+        const merged = {};
+        for (const [g, c] of Object.entries(d.nodes.groups || {})) {
+            merged[g] = (merged[g] || '') + '节点 ' + c;
+        }
+        for (const [g, c] of Object.entries(d.servers.groups || {})) {
+            merged[g] = (merged[g] ? merged[g] + ' / ' : '') + '服务器 ' + c;
+        }
+        groupEl.innerHTML = '<div class="dash-group-grid">' + Object.entries(merged).map(([g, desc]) =>
+            '<div class="dash-group-chip">' +
+                '<span class="dash-group-name">' + escapeHtml(g) + '</span>' +
+                '<span class="dash-group-count">' + desc + '</span>' +
+            '</div>'
+        ).join('') + '</div>';
+    }
+
+    // 最近命令活动
+    const cmdEl = document.getElementById('dashRecentCmds');
+    const cmds = d.recent_commands || [];
+    if (cmds.length === 0) {
+        cmdEl.innerHTML = '<div class="empty-state"><i class="fas fa-inbox"></i><p>暂无活动记录</p></div>';
+    } else {
+        cmdEl.innerHTML = '<div class="dash-cmd-list">' + cmds.map((c) => {
+            const t = new Date(c.time * 1000);
+            const ts = t.getMonth() + 1 + '/' + t.getDate() + ' ' +
+                String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+            return '<div class="dash-cmd-item">' +
+                '<div class="dash-cmd-icon"><i class="fas fa-terminal"></i></div>' +
+                '<div class="dash-cmd-body">' +
+                    '<div class="dash-cmd-header">' +
+                        '<span class="dash-cmd-node">' + escapeHtml(c.node) + '</span>' +
+                        '<span class="dash-cmd-time">' + ts + '</span>' +
+                    '</div>' +
+                    '<div class="dash-cmd-text">$ ' + escapeHtml(c.cmd) + '</div>' +
+                    (c.output ? '<div class="dash-cmd-output">' + escapeHtml(c.output) + '</div>' : '') +
+                '</div>' +
+            '</div>';
+        }).join('') + '</div>';
+    }
+
+    // 连接失败告警
+    const failCard = document.getElementById('dashFailCard');
+    const failList = d.recent_fails || [];
+    if (failList.length === 0) {
+        failCard.style.display = 'none';
+    } else {
+        failCard.style.display = '';
+        document.getElementById('dashFailList').innerHTML = '<div class="dash-fail-list">' + failList.map((f) => {
+            const t = new Date(f.time * 1000);
+            const ts = t.getMonth() + 1 + '/' + t.getDate() + ' ' +
+                String(t.getHours()).padStart(2, '0') + ':' + String(t.getMinutes()).padStart(2, '0');
+            return '<div class="dash-fail-item">' +
+                '<div class="dash-fail-icon"><i class="fas fa-times"></i></div>' +
+                '<div class="dash-fail-info">' +
+                    '<div class="dash-fail-name">' + escapeHtml(f.name) + '</div>' +
+                    '<div class="dash-fail-msg">' + escapeHtml(f.message || '连接失败') + '</div>' +
+                '</div>' +
+                '<div class="dash-fail-time">' + ts + '</div>' +
+            '</div>';
+        }).join('') + '</div>';
+    }
+}
+
 function switchToConnections() {
     state.currentView = 'connections';
     document.querySelectorAll('.nav-item').forEach((t) => t.classList.remove('active'));
     document.querySelector('.nav-item[data-view="connections"]').classList.add('active');
     document.getElementById('workspaceView').classList.add('hidden');
     document.getElementById('fileEditor').classList.add('hidden');
+    document.getElementById('dashboardView').classList.add('hidden');
     document.getElementById('connectionsView').classList.remove('hidden');
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.add('hidden');
@@ -576,6 +712,7 @@ function switchToReverseShell() {
     document.querySelector('.nav-item[data-view="reverse-shell"]').classList.add('active');
     document.getElementById('workspaceView').classList.add('hidden');
     document.getElementById('fileEditor').classList.add('hidden');
+    document.getElementById('dashboardView').classList.add('hidden');
     document.getElementById('connectionsView').classList.add('hidden');
     document.getElementById('reverseShellView').classList.remove('hidden');
     document.getElementById('serversView').classList.add('hidden');
@@ -593,6 +730,7 @@ function switchToServers() {
     document.querySelector('.nav-item[data-view="servers"]').classList.add('active');
     document.getElementById('workspaceView').classList.add('hidden');
     document.getElementById('fileEditor').classList.add('hidden');
+    document.getElementById('dashboardView').classList.add('hidden');
     document.getElementById('connectionsView').classList.add('hidden');
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.remove('hidden');
@@ -610,6 +748,7 @@ function switchToServerTerm() {
     document.querySelector('.nav-item[data-view="server-term"]').classList.add('active');
     document.getElementById('workspaceView').classList.add('hidden');
     document.getElementById('fileEditor').classList.add('hidden');
+    document.getElementById('dashboardView').classList.add('hidden');
     document.getElementById('connectionsView').classList.add('hidden');
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.add('hidden');
@@ -1343,7 +1482,8 @@ function bindEvents() {
 
     document.querySelectorAll('.nav-item').forEach((t) => {
         t.onclick = () => {
-            if (t.dataset.view === 'connections') switchToConnections();
+            if (t.dataset.view === 'dashboard') switchToDashboard();
+            else if (t.dataset.view === 'connections') switchToConnections();
             else if (t.dataset.view === 'reverse-shell') switchToReverseShell();
             else if (t.dataset.view === 'servers') switchToServers();
             else if (t.dataset.view === 'server-term') switchToServerTerm();

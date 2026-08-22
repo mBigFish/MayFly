@@ -30,6 +30,10 @@
                 <span class="sidebar-title">Mayfly</span>
             </div>
             <nav class="sidebar-nav">
+                <div class="nav-item" data-view="dashboard">
+                    <i class="fas fa-tachometer-alt"></i>
+                    <span>仪表盘</span>
+                </div>
                 <div class="nav-item active" data-view="connections">
                     <i class="fas fa-server"></i>
                     <span>连接列表</span>
@@ -237,6 +241,94 @@
                         <div style="margin-top: 12px; text-align: right;">
                             <button class="btn btn-primary" id="saveFileBtn"><i class="fas fa-save"></i> 保存</button>
                         </div>
+                    </div>
+                </div>
+
+                <!-- 仪表盘视图 -->
+                <div id="dashboardView" class="dashboard-view hidden">
+                    <!-- 统计卡片 -->
+                    <div class="dash-stats-row">
+                        <div class="dash-stat-card" data-accent="blue">
+                            <div class="dash-stat-icon"><i class="fas fa-server"></i></div>
+                            <div class="dash-stat-info">
+                                <div class="dash-stat-value" id="dashNodeTotal">0</div>
+                                <div class="dash-stat-label">节点总数</div>
+                            </div>
+                            <div class="dash-stat-sub">
+                                <span class="text-green" id="dashNodeOnline">0</span> 在线 /
+                                <span class="text-red" id="dashNodeOffline">0</span> 离线
+                            </div>
+                        </div>
+                        <div class="dash-stat-card" data-accent="green">
+                            <div class="dash-stat-icon"><i class="fas fa-hdd"></i></div>
+                            <div class="dash-stat-info">
+                                <div class="dash-stat-value" id="dashSrvTotal">0</div>
+                                <div class="dash-stat-label">服务器总数</div>
+                            </div>
+                            <div class="dash-stat-sub">
+                                <span class="text-green" id="dashSrvOnline">0</span> 在线 /
+                                <span class="text-red" id="dashSrvOffline">0</span> 离线
+                            </div>
+                        </div>
+                        <div class="dash-stat-card" data-accent="orange">
+                            <div class="dash-stat-icon"><i class="fas fa-headphones"></i></div>
+                            <div class="dash-stat-info">
+                                <div class="dash-stat-value" id="dashListenerTotal">0</div>
+                                <div class="dash-stat-label">监听器</div>
+                            </div>
+                            <div class="dash-stat-sub">
+                                <span class="text-green" id="dashListenerActive">0</span> 运行中
+                            </div>
+                        </div>
+                        <div class="dash-stat-card" data-accent="purple">
+                            <div class="dash-stat-icon"><i class="fas fa-layer-group"></i></div>
+                            <div class="dash-stat-info">
+                                <div class="dash-stat-value" id="dashGroupTotal">0</div>
+                                <div class="dash-stat-label">分组数</div>
+                            </div>
+                            <div class="dash-stat-sub" id="dashGroupSub">-</div>
+                        </div>
+                    </div>
+
+                    <!-- 下方两列 -->
+                    <div class="dash-bottom-row">
+                        <!-- 节点类型分布 + 分组概览 -->
+                        <div class="dash-left-col">
+                            <div class="card dash-card">
+                                <div class="card-header">
+                                    <h3><i class="fas fa-chart-pie"></i> 节点类型分布</h3>
+                                </div>
+                                <div class="card-body" id="dashTypeChart">
+                                    <div class="empty-state"><i class="fas fa-inbox"></i><p>暂无数据</p></div>
+                                </div>
+                            </div>
+                            <div class="card dash-card">
+                                <div class="card-header">
+                                    <h3><i class="fas fa-tags"></i> 分组概览</h3>
+                                </div>
+                                <div class="card-body" id="dashGroupOverview">
+                                    <div class="empty-state"><i class="fas fa-inbox"></i><p>暂无分组</p></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 最近活动 -->
+                        <div class="card dash-card dash-right-col">
+                            <div class="card-header">
+                                <h3><i class="fas fa-history"></i> 最近命令活动</h3>
+                            </div>
+                            <div class="card-body" id="dashRecentCmds">
+                                <div class="empty-state"><i class="fas fa-inbox"></i><p>暂无活动记录</p></div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 连接失败告警 -->
+                    <div class="card dash-card" id="dashFailCard" style="display:none;">
+                        <div class="card-header">
+                            <h3><i class="fas fa-exclamation-triangle" style="color:var(--danger-color);"></i> 连接失败节点</h3>
+                        </div>
+                        <div class="card-body" id="dashFailList"></div>
                     </div>
                 </div>
 

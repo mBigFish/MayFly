@@ -2984,3 +2984,322 @@ html[data-theme="dark"] .rs-payload-copy-btn:hover {
     background: rgba(255, 255, 255, 0.12);
     color: var(--primary);
 }
+
+/* ===== 仪表盘视图 ===== */
+.dashboard-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    overflow-y: auto;
+    padding: 20px;
+    min-height: 0;
+}
+.dash-stats-row {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+.dash-stat-card {
+    background: var(--bg-card);
+    border: var(--glass-border);
+    border-radius: 12px;
+    padding: 20px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 16px;
+    backdrop-filter: var(--glass-blur);
+    transition: var(--transition);
+    position: relative;
+    overflow: hidden;
+}
+.dash-stat-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-hover);
+}
+.dash-stat-card::before {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0;
+    height: 3px;
+    background: var(--primary);
+    border-radius: 12px 12px 0 0;
+}
+.dash-stat-card[data-accent="blue"]::before { background: #4f6ef7; }
+.dash-stat-card[data-accent="green"]::before { background: #22c55e; }
+.dash-stat-card[data-accent="orange"]::before { background: #f59e0b; }
+.dash-stat-card[data-accent="purple"]::before { background: #a855f7; }
+
+.dash-stat-icon {
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 20px;
+    flex-shrink: 0;
+}
+.dash-stat-card[data-accent="blue"] .dash-stat-icon { background: rgba(79, 110, 247, 0.12); color: #4f6ef7; }
+.dash-stat-card[data-accent="green"] .dash-stat-icon { background: rgba(34, 197, 94, 0.12); color: #22c55e; }
+.dash-stat-card[data-accent="orange"] .dash-stat-icon { background: rgba(245, 158, 11, 0.12); color: #f59e0b; }
+.dash-stat-card[data-accent="purple"] .dash-stat-icon { background: rgba(168, 85, 247, 0.12); color: #a855f7; }
+
+.dash-stat-info { flex: 1; min-width: 0; }
+.dash-stat-value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--text-primary);
+    line-height: 1.2;
+}
+.dash-stat-label {
+    font-size: 13px;
+    color: var(--text-secondary);
+    margin-top: 2px;
+}
+.dash-stat-sub {
+    width: 100%;
+    font-size: 12px;
+    color: var(--text-muted);
+    padding-top: 8px;
+    border-top: 1px solid var(--border-color);
+    margin-top: 4px;
+}
+.text-green { color: var(--success, #22c55e); font-weight: 600; }
+.text-red { color: var(--danger, #ef4444); font-weight: 600; }
+
+.dash-bottom-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    min-height: 0;
+}
+.dash-left-col {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.dash-card {
+    background: var(--bg-card);
+    border: var(--glass-border);
+    border-radius: 12px;
+    backdrop-filter: var(--glass-blur);
+    overflow: hidden;
+}
+.dash-right-col {
+    display: flex;
+    flex-direction: column;
+}
+.dash-right-col .card-body {
+    flex: 1;
+    overflow-y: auto;
+    max-height: 400px;
+}
+
+/* 仪表盘：类型分布条形图 */
+.dash-type-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+.dash-type-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+.dash-type-label {
+    width: 50px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    text-transform: uppercase;
+    text-align: right;
+    flex-shrink: 0;
+}
+.dash-type-bar-wrap {
+    flex: 1;
+    height: 24px;
+    background: rgba(79, 110, 247, 0.08);
+    border-radius: 6px;
+    overflow: hidden;
+    position: relative;
+}
+.dash-type-bar {
+    height: 100%;
+    border-radius: 6px;
+    transition: width 0.6s ease;
+    min-width: 2px;
+}
+.dash-type-bar.php { background: linear-gradient(90deg, #4f6ef7, #6d8bff); }
+.dash-type-bar.jsp { background: linear-gradient(90deg, #f59e0b, #fbbf24); }
+.dash-type-bar.aspx { background: linear-gradient(90deg, #22c55e, #34d399); }
+.dash-type-bar.asp { background: linear-gradient(90deg, #ef4444, #f87171); }
+.dash-type-count {
+    width: 36px;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    text-align: left;
+    flex-shrink: 0;
+}
+
+/* 仪表盘：分组概览 */
+.dash-group-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+    gap: 10px;
+}
+.dash-group-chip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+.dash-group-chip:hover { background: var(--glass-bg-hover); }
+.dash-group-name {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dash-group-count {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 2px 8px;
+    border-radius: 10px;
+    flex-shrink: 0;
+    margin-left: 8px;
+}
+
+/* 仪表盘：最近命令活动 */
+.dash-cmd-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.dash-cmd-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
+    transition: var(--transition);
+}
+.dash-cmd-item:hover { background: var(--glass-bg-hover); }
+.dash-cmd-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(79, 110, 247, 0.1);
+    color: var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.dash-cmd-body { flex: 1; min-width: 0; }
+.dash-cmd-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+.dash-cmd-node {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 1px 6px;
+    border-radius: 4px;
+}
+.dash-cmd-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    margin-left: auto;
+}
+.dash-cmd-text {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 12.5px;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dash-cmd-output {
+    font-family: 'JetBrains Mono', 'Fira Code', 'Cascadia Code', 'Consolas', monospace;
+    font-size: 11.5px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    margin-top: 2px;
+}
+
+/* 仪表盘：失败告警 */
+.dash-fail-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+.dash-fail-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    background: rgba(239, 68, 68, 0.06);
+    border: 1px solid rgba(239, 68, 68, 0.15);
+}
+.dash-fail-icon {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    background: rgba(239, 68, 68, 0.12);
+    color: var(--danger, #ef4444);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 12px;
+    flex-shrink: 0;
+}
+.dash-fail-info { flex: 1; min-width: 0; }
+.dash-fail-name {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+}
+.dash-fail-msg {
+    font-size: 12px;
+    color: var(--text-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dash-fail-time {
+    font-size: 11px;
+    color: var(--text-muted);
+    flex-shrink: 0;
+}
+
+/* 仪表盘响应式 */
+@media (max-width: 1200px) {
+    .dash-stats-row { grid-template-columns: repeat(2, 1fr); }
+    .dash-bottom-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+    .dash-stats-row { grid-template-columns: 1fr; }
+    .dashboard-view { padding: 12px; }
+}
