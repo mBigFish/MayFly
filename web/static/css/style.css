@@ -744,27 +744,41 @@ body,
 }
 
 .node-panel {
-    width: 300px;
+    width: 260px;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    min-height: 0;
-}
-
-.node-panel .card-header { flex-shrink: 0; }
-
-.node-panel .card-body {
-    flex: 1;
-    display: flex;
-    flex-direction: column;
+    background: var(--bg-card);
+    border: var(--glass-border);
+    border-radius: 12px;
     overflow: hidden;
     min-height: 0;
 }
 
-.node-panel .node-list {
+.node-panel-header {
+    padding: 14px 16px;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    border-bottom: 1px solid var(--border-color);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-shrink: 0;
+}
+.node-panel-header i { color: var(--primary); }
+.node-panel-actions { display: flex; gap: 6px; }
+
+.node-panel-search {
+    padding: 10px 12px;
+    border-bottom: 1px solid var(--border-color);
+    flex-shrink: 0;
+}
+
+.node-panel-list {
     flex: 1;
-    max-height: none;
     overflow-y: auto;
+    padding: 8px;
 }
 
 .search-row {
@@ -1516,31 +1530,23 @@ select.form-control { cursor: pointer; }
 .hidden { display: none !important; }
 
 /* ===== 节点列表 ===== */
-.node-list { max-height: 360px; overflow-y: auto; }
+
 .node-item {
     display: flex;
     align-items: center;
-    padding: 14px 16px;
-    border-radius: var(--radius-sm);
+    padding: 10px 12px;
+    border-radius: 8px;
     cursor: pointer;
     transition: var(--transition);
-    border: 1.5px solid transparent;
-    margin-bottom: 8px;
+    border: 1px solid transparent;
+    margin-bottom: 4px;
 }
 .node-item:hover {
-    background: rgba(255, 255, 255, 0.7);
-    border-color: rgba(255, 255, 255, 0.6);
-    transform: translateX(2px);
-    backdrop-filter: var(--glass-blur-light);
-    -webkit-backdrop-filter: var(--glass-blur-light);
-    box-shadow: 0 2px 10px rgba(79, 110, 247, 0.05);
+    background: var(--glass-bg-hover);
 }
 .node-item.active {
-    background: rgba(255, 255, 255, 0.8);
+    background: var(--primary-light);
     border-color: rgba(79, 110, 247, 0.25);
-    backdrop-filter: var(--glass-blur);
-    -webkit-backdrop-filter: var(--glass-blur);
-    box-shadow: 0 4px 16px rgba(79, 110, 247, 0.1), inset 0 1px 0 rgba(255, 255, 255, 0.6);
 }
 .node-type-badge {
     width: 42px;
@@ -1672,6 +1678,16 @@ select.form-control { cursor: pointer; }
 .terminal-instance.active .xterm {
     flex: 1;
     min-height: 0;
+}
+/* 强制终端选中高亮始终可见（xterm 默认失焦时可能隐藏选中层） */
+.xterm .xterm-selection {
+    display: block !important;
+}
+.xterm .xterm-selection div {
+    background-color: rgba(49, 109, 202, 0.3) !important;
+}
+html[data-theme="dark"] .xterm .xterm-selection div {
+    background-color: rgba(86, 156, 214, 0.35) !important;
 }
 
 .muted { color: var(--text-muted); }
@@ -3302,4 +3318,197 @@ html[data-theme="dark"] .rs-payload-copy-btn:hover {
 @media (max-width: 768px) {
     .dash-stats-row { grid-template-columns: 1fr; }
     .dashboard-view { padding: 12px; }
+}
+
+/* ===== 系统管理视图 ===== */
+.system-view {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    overflow-y: auto;
+    padding: 20px;
+    min-height: 0;
+}
+.sys-info-row,
+.sys-settings-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+.sys-card {
+    background: var(--bg-card);
+    border: var(--glass-border);
+    border-radius: 12px;
+    backdrop-filter: var(--glass-blur);
+    overflow: hidden;
+}
+.sys-card .card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 20px;
+    border-bottom: 1px solid var(--border-color);
+}
+.sys-card .card-header h3 {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-primary);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.sys-card .card-header-actions {
+    display: flex;
+    gap: 8px;
+}
+.sys-card .card-body {
+    padding: 16px 20px;
+}
+
+/* 系统信息表格 */
+.sys-info-table {
+    width: 100%;
+    border-collapse: collapse;
+}
+.sys-info-table tr {
+    border-bottom: 1px solid var(--border-color);
+}
+.sys-info-table tr:last-child {
+    border-bottom: none;
+}
+.sys-info-table td {
+    padding: 8px 0;
+    font-size: 13px;
+    vertical-align: top;
+}
+.sys-info-table td:first-child {
+    color: var(--text-secondary);
+    width: 120px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.sys-info-table td:last-child {
+    color: var(--text-primary);
+    word-break: break-all;
+}
+
+/* 数据文件列表 */
+.sys-file-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-top: 12px;
+}
+.sys-file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 12px;
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    font-size: 12px;
+}
+.sys-file-name {
+    font-weight: 500;
+    color: var(--text-primary);
+    font-family: 'JetBrains Mono', monospace;
+}
+.sys-file-size {
+    color: var(--text-muted);
+}
+
+/* 数据管理操作区 */
+.sys-data-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    align-items: center;
+}
+
+/* 审计日志表格 */
+.sys-audit-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12.5px;
+}
+.sys-audit-table thead th {
+    text-align: left;
+    padding: 8px 10px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    border-bottom: 2px solid var(--border-color);
+    white-space: nowrap;
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+.sys-audit-table tbody tr {
+    border-bottom: 1px solid var(--border-color);
+    transition: background 0.15s;
+}
+.sys-audit-table tbody tr:hover {
+    background: var(--glass-bg-hover);
+}
+.sys-audit-table tbody td {
+    padding: 8px 10px;
+    color: var(--text-primary);
+    vertical-align: top;
+}
+.sys-audit-action {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--primary);
+    background: var(--primary-light);
+    padding: 2px 6px;
+    border-radius: 4px;
+    display: inline-block;
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.sys-audit-time {
+    color: var(--text-muted);
+    font-size: 11.5px;
+    white-space: nowrap;
+}
+.sys-audit-ip {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 11.5px;
+    color: var(--text-muted);
+}
+
+/* 表单行 */
+.form-row {
+    margin-bottom: 10px;
+}
+.form-row label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--text-secondary);
+    margin-bottom: 4px;
+}
+.form-row .form-control {
+    width: 100%;
+    padding: 8px 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 6px;
+    background: var(--glass-bg);
+    color: var(--text-primary);
+    font-size: 13px;
+    transition: var(--transition);
+    outline: none;
+}
+.form-row .form-control:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 2px var(--primary-light);
+}
+
+/* 系统管理响应式 */
+@media (max-width: 1000px) {
+    .sys-info-row,
+    .sys-settings-row { grid-template-columns: 1fr; }
 }

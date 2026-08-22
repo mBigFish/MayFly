@@ -65,9 +65,17 @@ func main() {
 		api.POST("/login", handler.Login)
 	}
 
+	// 审计日志存储
+	auditStore := handler.NewAuditStore("data/audit_log.json", 2000)
+	// 运行时设置存储
+	settingsStore := handler.NewSettingsStore("data/settings.json")
+	// 系统管理 Handler
+	systemHandler := handler.NewSystemHandler(auditStore, settingsStore)
+
 	// 需要认证的 API
 	authAPI := r.Group("/api")
 	authAPI.Use(middleware.Auth())
+	authAPI.Use(handler.AuditMiddleware(auditStore))
 	{
 		// 本地 WebSSH 终端（保留原有能力）
 		termHandler := handler.NewTerminalHandler(service.NewSessionService())
@@ -121,6 +129,16 @@ func main() {
 		authAPI.DELETE("/servers", handler.DeleteServer)
 		authAPI.POST("/servers/test", handler.TestSSHConnection)
 		authAPI.GET("/servers/:id/terminal", serverTermHandler.Handle)
+
+		// 系统管理
+		authAPI.GET("/system/info", systemHandler.SysInfo)
+		authAPI.GET("/system/settings", systemHandler.GetSettings)
+		authAPI.PUT("/system/settings", systemHandler.UpdateSettings)
+		authAPI.POST("/system/password", systemHandler.ChangePassword)
+		authAPI.GET("/system/audit-logs", systemHandler.GetAuditLogs)
+		authAPI.DELETE("/system/audit-logs", systemHandler.ClearAuditLogs)
+		authAPI.GET("/system/export", systemHandler.ExportData)
+		authAPI.POST("/system/import", systemHandler.ImportData)
 	}
 
 	// 启动服务器

@@ -242,6 +242,7 @@ function restoreUI() {
     if (v === 'servers') { switchToServers(); return; }
     if (v === 'server-term') { switchToServerTerm(); restoreSrvTerms(); return; }
     if (v === 'connections') { switchToConnections(); return; }
+    if (v === 'system') { switchToSystem(); return; }
 
     // 工作区视图：切回对应标签页（登录后节点列表默认清空，不恢复历史选中节点）
     switchTab(state.currentTab || 'file');
@@ -543,6 +544,7 @@ function switchTab(tab) {
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.add('hidden');
     document.getElementById('serverTermView').classList.add('hidden');
+    document.getElementById('systemView').classList.add('hidden');
     document.getElementById('headerSearchWrap').style.display = '';
     document.querySelector('.breadcrumb').innerHTML = '节点列表 / <span id="currentNodeTitle"><span class="muted">未选择节点</span></span>';
     document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
@@ -567,6 +569,7 @@ function switchToDashboard() {
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.add('hidden');
     document.getElementById('serverTermView').classList.add('hidden');
+    document.getElementById('systemView').classList.add('hidden');
     document.getElementById('headerSearchWrap').style.display = 'none';
     document.querySelector('.breadcrumb').textContent = '仪表盘';
     loadDashboard();
@@ -700,6 +703,7 @@ function switchToConnections() {
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.add('hidden');
     document.getElementById('serverTermView').classList.add('hidden');
+    document.getElementById('systemView').classList.add('hidden');
     document.getElementById('headerSearchWrap').style.display = '';
     document.querySelector('.breadcrumb').innerHTML = '节点列表 / <span id="currentNodeTitle"><span class="muted">连接列表</span></span>';
     renderConnList();
@@ -717,6 +721,7 @@ function switchToReverseShell() {
     document.getElementById('reverseShellView').classList.remove('hidden');
     document.getElementById('serversView').classList.add('hidden');
     document.getElementById('serverTermView').classList.add('hidden');
+    document.getElementById('systemView').classList.add('hidden');
     document.getElementById('headerSearchWrap').style.display = 'none';
     document.querySelector('.breadcrumb').textContent = '反弹Shell';
     loadListeners();
@@ -735,6 +740,7 @@ function switchToServers() {
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.remove('hidden');
     document.getElementById('serverTermView').classList.add('hidden');
+    document.getElementById('systemView').classList.add('hidden');
     document.getElementById('headerSearchWrap').style.display = 'none';
     document.querySelector('.breadcrumb').textContent = '资源管理';
     loadServers();
@@ -753,6 +759,7 @@ function switchToServerTerm() {
     document.getElementById('reverseShellView').classList.add('hidden');
     document.getElementById('serversView').classList.add('hidden');
     document.getElementById('serverTermView').classList.remove('hidden');
+    document.getElementById('systemView').classList.add('hidden');
     document.getElementById('headerSearchWrap').style.display = 'none';
     document.querySelector('.breadcrumb').textContent = '终端操作';
     renderSrvTermList();
@@ -761,6 +768,124 @@ function switchToServerTerm() {
         requestAnimationFrame(() => setTimeout(() => switchSrvTerm(state.activeSrvTermId), 30));
     }
     persistUI();
+}
+
+function switchToSystem() {
+    state.currentView = 'system';
+    document.querySelectorAll('.nav-item').forEach((t) => t.classList.remove('active'));
+    document.querySelector('.nav-item[data-view="system"]').classList.add('active');
+    document.getElementById('workspaceView').classList.add('hidden');
+    document.getElementById('fileEditor').classList.add('hidden');
+    document.getElementById('dashboardView').classList.add('hidden');
+    document.getElementById('connectionsView').classList.add('hidden');
+    document.getElementById('reverseShellView').classList.add('hidden');
+    document.getElementById('serversView').classList.add('hidden');
+    document.getElementById('serverTermView').classList.add('hidden');
+    document.getElementById('systemView').classList.remove('hidden');
+    document.getElementById('headerSearchWrap').style.display = 'none';
+    document.querySelector('.breadcrumb').textContent = '系统管理';
+    loadSystemInfo();
+    loadSystemSettings();
+    loadSystemAuditLogs();
+    persistUI();
+}
+
+// ===== 系统管理逻辑 =====
+async function loadSystemInfo() {
+    try {
+        const r = await api('GET', '/system/info');
+        if (r.status === 401) return;
+        const d = r.data;
+        document.getElementById('sysInfoBody').innerHTML =
+            '<table class="sys-info-table">' +
+            '<tr><td>版本</td><td>' + escapeHtml(d.version) + '</td></tr>' +
+            '<tr><td>Go 版本</td><td>' + escapeHtml(d.go_version) + '</td></tr>' +
+            '<tr><td>操作系统</td><td>' + escapeHtml(d.os + '/' + d.arch) + '</td></tr>' +
+            '<tr><td>CPU 核心</td><td>' + d.cpu_num + '</td></tr>' +
+            '<tr><td>Goroutine</td><td>' + d.goroutines + '</td></tr>' +
+            '<tr><td>启动时间</td><td>' + escapeHtml(d.start_time) + '</td></tr>' +
+            '<tr><td>运行时长</td><td>' + escapeHtml(d.uptime) + '</td></tr>' +
+            '</table>';
+
+        // 数据文件
+        const files = d.data_files || {};
+        const fileNames = Object.keys(files);
+        let fileHtml = '';
+        if (fileNames.length > 0) {
+            fileHtml = '<div class="sys-file-list">' + fileNames.map((f) =>
+                '<div class="sys-file-item">' +
+                    '<span class="sys-file-name">' + escapeHtml(f) + '</span>' +
+                    '<span class="sys-file-size">' + formatFileSize(files[f]) + '</span>' +
+                '</div>'
+            ).join('') + '</div>';
+        }
+
+        document.getElementById('sysRuntimeBody').innerHTML =
+            '<table class="sys-info-table">' +
+            '<tr><td>内存分配</td><td>' + d.mem_alloc + ' MB</td></tr>' +
+            '<tr><td>系统内存</td><td>' + d.mem_sys + ' MB</td></tr>' +
+            '<tr><td>累计分配</td><td>' + d.mem_total + ' MB</td></tr>' +
+            '<tr><td>GC 次数</td><td>' + d.gc_count + '</td></tr>' +
+            '<tr><td>审计日志</td><td>' + d.audit_count + ' 条</td></tr>' +
+            '</table>' + fileHtml;
+    } catch (e) {
+        console.error('loadSystemInfo error:', e);
+    }
+}
+
+async function loadSystemSettings() {
+    try {
+        const r = await api('GET', '/system/settings');
+        if (r.status === 401) return;
+        document.getElementById('sysSessionTimeout').value = r.data.session_timeout || 30;
+        document.getElementById('sysShell').value = r.data.shell || '';
+    } catch (e) {
+        console.error('loadSystemSettings error:', e);
+    }
+}
+
+async function loadSystemAuditLogs() {
+    const el = document.getElementById('sysAuditBody');
+    try {
+        const r = await api('GET', '/system/audit-logs?limit=200');
+        if (r.status === 401) return;
+        const logs = r.data.logs || [];
+        if (logs.length === 0) {
+            el.innerHTML = '<div class="empty-state"><i class="fas fa-clipboard-check"></i><p>暂无审计记录</p></div>';
+            return;
+        }
+        el.innerHTML =
+            '<div style="overflow-x:auto;">' +
+            '<table class="sys-audit-table">' +
+            '<thead><tr>' +
+                '<th>时间</th><th>用户</th><th>操作</th><th>目标</th><th>IP</th>' +
+            '</tr></thead>' +
+            '<tbody>' + logs.map((l) => {
+                const t = new Date(l.time);
+                const ts = t.getFullYear() + '-' +
+                    String(t.getMonth() + 1).padStart(2, '0') + '-' +
+                    String(t.getDate()).padStart(2, '0') + ' ' +
+                    String(t.getHours()).padStart(2, '0') + ':' +
+                    String(t.getMinutes()).padStart(2, '0') + ':' +
+                    String(t.getSeconds()).padStart(2, '0');
+                return '<tr>' +
+                    '<td class="sys-audit-time">' + ts + '</td>' +
+                    '<td>' + escapeHtml(l.user || '-') + '</td>' +
+                    '<td><span class="sys-audit-action">' + escapeHtml(l.action) + '</span></td>' +
+                    '<td>' + escapeHtml(l.detail || l.target || '-') + '</td>' +
+                    '<td class="sys-audit-ip">' + escapeHtml(l.ip || '-') + '</td>' +
+                '</tr>';
+            }).join('') + '</tbody></table></div>' +
+            '<div style="margin-top:8px;font-size:11px;color:var(--text-muted);">共 ' + r.data.total + ' 条记录</div>';
+    } catch (e) {
+        el.innerHTML = '<div class="empty-state"><i class="fas fa-exclamation-triangle"></i><p>加载失败</p></div>';
+    }
+}
+
+function formatFileSize(bytes) {
+    if (bytes < 1024) return bytes + ' B';
+    if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+    return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
 }
 
 // 从服务器卡片打开终端（入口）
@@ -916,7 +1041,6 @@ function renderSrvTermList() {
         return `
             <div class="srv-term-item ${active}" data-srv-term="${id}">
                 <div class="srv-term-info">
-                    <i class="fas fa-terminal"></i>
                     <span class="srv-term-name" title="${escapeHtml(s.name || s.host)}">${escapeHtml(s.name || s.host)}</span>
                     <span class="mono srv-term-addr">${escapeHtml(s.host)}:${s.port || 22}</span>
                 </div>
@@ -1487,6 +1611,7 @@ function bindEvents() {
             else if (t.dataset.view === 'reverse-shell') switchToReverseShell();
             else if (t.dataset.view === 'servers') switchToServers();
             else if (t.dataset.view === 'server-term') switchToServerTerm();
+            else if (t.dataset.view === 'system') switchToSystem();
             else if (t.dataset.tab) switchTab(t.dataset.tab);
         };
     });
@@ -1579,6 +1704,74 @@ function bindEvents() {
         if (!document.hidden) refitActive();
     });
     window.addEventListener('focus', refitActive);
+
+    // 系统管理
+    document.getElementById('sysSaveSettingsBtn').onclick = async () => {
+        const timeout = parseInt(document.getElementById('sysSessionTimeout').value) || 30;
+        const shell = document.getElementById('sysShell').value.trim();
+        const r = await api('PUT', '/system/settings', { session_timeout: timeout, shell: shell });
+        if (r.status === 401) return;
+        if (r.status >= 400) { toast(r.data.error || '保存失败', 'error'); return; }
+        toast('设置已保存', 'success');
+    };
+
+    document.getElementById('sysChangePassBtn').onclick = async () => {
+        const oldP = document.getElementById('sysOldPass').value;
+        const newP = document.getElementById('sysNewPass').value;
+        const confirmP = document.getElementById('sysConfirmPass').value;
+        if (!oldP || !newP) { toast('请填写完整', 'warning'); return; }
+        if (newP.length < 6) { toast('新密码至少 6 位', 'warning'); return; }
+        if (newP !== confirmP) { toast('两次输入的新密码不一致', 'warning'); return; }
+        const r = await api('POST', '/system/password', { old_password: oldP, new_password: newP });
+        if (r.status === 401) return;
+        if (r.status >= 400) { toast(r.data.error || '修改失败', 'error'); return; }
+        toast(r.data.message || '密码已修改', 'success');
+        document.getElementById('sysOldPass').value = '';
+        document.getElementById('sysNewPass').value = '';
+        document.getElementById('sysConfirmPass').value = '';
+    };
+
+    document.getElementById('sysExportBtn').onclick = async () => {
+        const r = await api('GET', '/system/export');
+        if (r.status === 401) return;
+        const blob = new Blob([JSON.stringify(r.data, null, 2)], { type: 'application/json' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = 'mayfly_backup_' + new Date().toISOString().slice(0, 10) + '.json';
+        a.click();
+        URL.revokeObjectURL(url);
+        toast('数据已导出', 'success');
+    };
+
+    document.getElementById('sysImportInput').onchange = async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        try {
+            const text = await file.text();
+            const json = JSON.parse(text);
+            const data = json.data || json;
+            const r = await api('POST', '/system/import', { data: data });
+            if (r.status === 401) return;
+            if (r.status >= 400) { toast(r.data.error || '导入失败', 'error'); return; }
+            toast(r.data.message || '导入成功', 'success');
+            loadSystemInfo();
+        } catch (err) {
+            toast('文件解析失败: ' + err.message, 'error');
+        }
+        e.target.value = '';
+    };
+
+    document.getElementById('sysRefreshAuditBtn').onclick = loadSystemAuditLogs;
+
+    document.getElementById('sysClearAuditBtn').onclick = async () => {
+        if (!confirm('确定清空所有审计日志？')) return;
+        const r = await api('DELETE', '/system/audit-logs');
+        if (r.status === 401) return;
+        toast('审计日志已清空', 'success');
+        loadSystemAuditLogs();
+        loadSystemInfo();
+    };
 }
 
 // ===== 主题切换 =====
@@ -1595,12 +1788,14 @@ function getTerminalTheme() {
     if (theme === 'dark') {
         return {
             background: '#0d1117', foreground: '#e6edf3', cursor: '#e6edf3',
+            selectionBackground: 'rgba(86, 156, 214, 0.35)',
             black: '#0d1117', red: '#f48771', green: '#89d185', yellow: '#dcdcaa',
             blue: '#569cd6', magenta: '#c586c0', cyan: '#4ec9b0', white: '#e6edf3',
         };
     }
     return {
         background: '#fafbfd', foreground: '#1f2430', cursor: '#1f2430',
+        selectionBackground: 'rgba(49, 109, 202, 0.3)',
         black: '#1f2430', red: '#d64550', green: '#1a7f37', yellow: '#b08800',
         blue: '#316dca', magenta: '#8250df', cyan: '#1b7c83', white: '#fafbfd',
     };
