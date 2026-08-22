@@ -1,0 +1,28 @@
+# Mayfly 配置文件
+server:
+  host: "0.0.0.0"
+  port: 8080
+  mode: "debug"  # debug / release / test
+
+auth:
+  jwt_secret: "mayfly-secret-key-change-in-production"
+  jwt_expire: 30  # 分钟
+  # 首次启动若 users 表为空，自动创建管理员账户
+  init_username: "admin"
+  init_password: "mayfly123"
+
+database:
+  driver: "sqlite"
+  dsn: "data/mayfly.db"
+
+log:
+  level: "info"       # debug / info / warn / error
+  encoding: "console"  # console / json
+  output: "data/logs/mayfly.log"
+  max_size: 50         # MB
+  max_backups: 5
+  max_age: 30          # 天
+
+terminal:
+  shell: ""  # 留空则自动检测：Windows=powershell.exe, Linux=bash
+  session_timeout: 30  # 分钟

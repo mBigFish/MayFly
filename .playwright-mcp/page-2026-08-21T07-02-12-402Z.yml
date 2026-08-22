@@ -1,0 +1,184 @@
+- generic [active] [ref=f6e1]:
+  - generic [ref=f6e2]:
+    - complementary [ref=f6e3]:
+      - generic [ref=f6e4]:
+        - generic [ref=f6e5]: 
+        - generic [ref=f6e7]: Mayfly
+      - navigation [ref=f6e8]:
+        - generic [ref=f6e9] [cursor=pointer]:
+          - generic [ref=f6e10]: 
+          - generic [ref=f6e11]: 连接列表
+        - generic [ref=f6e13] [cursor=pointer]:
+          - generic [ref=f6e14]: 
+          - generic [ref=f6e15]: 文件管理
+        - generic [ref=f6e16] [cursor=pointer]:
+          - generic [ref=f6e17]: 
+          - generic [ref=f6e18]: 命令执行
+        - generic [ref=f6e19] [cursor=pointer]:
+          - generic [ref=f6e20]: 
+          - generic [ref=f6e21]: 交互终端
+        - generic [ref=f6e22] [cursor=pointer]:
+          - generic [ref=f6e23]: 
+          - generic [ref=f6e24]: 数据库
+        - generic [ref=f6e26] [cursor=pointer]:
+          - generic [ref=f6e27]: 
+          - generic [ref=f6e28]: 反弹Shell
+        - generic [ref=f6e30] [cursor=pointer]:
+          - generic [ref=f6e31]: 
+          - generic [ref=f6e32]: 资源管理
+      - generic [ref=f6e33]:
+        - generic [ref=f6e34]:
+          - generic [ref=f6e36]: 节点
+          - generic [ref=f6e37]: "5"
+        - generic [ref=f6e38]:
+          - generic [ref=f6e40]: 已连接
+          - generic [ref=f6e41]: "0"
+        - generic [ref=f6e42]:
+          - generic [ref=f6e44]: PHP
+          - generic [ref=f6e45]: "3"
+        - generic [ref=f6e46]:
+          - generic [ref=f6e48]: 其他
+          - generic [ref=f6e49]: "2"
+    - main [ref=f6e50]:
+      - generic [ref=f6e51]:
+        - generic [ref=f6e53]:
+          - text: 节点列表 /
+          - generic [ref=f6e54]: 未选择节点
+        - generic [ref=f6e55]:
+          - generic [ref=f6e56]:
+            - generic [ref=f6e57]: 
+            - textbox "搜索节点..." [ref=f6e58]
+          - button "" [ref=f6e59] [cursor=pointer]
+          - button "" [ref=f6e62] [cursor=pointer]
+          - generic [ref=f6e64] [cursor=pointer]:
+            - generic [ref=f6e65]: 
+            - generic [ref=f6e67]: admin
+            - generic [ref=f6e68]: 
+      - generic [ref=f6e69]:
+        - text:              
+        - generic [ref=f6e70]:
+          - generic [ref=f6e71]:
+            - button "+ 添加节点" [ref=f6e72] [cursor=pointer]:
+              - generic [ref=f6e73]: +
+              - text: 添加节点
+            - generic [ref=f6e74]:
+              - generic [ref=f6e75]: 
+              - textbox "搜索连接名称或URL..." [ref=f6e76]
+            - generic [ref=f6e77]:
+              - button "全部" [ref=f6e78] [cursor=pointer]
+              - button "已连通" [ref=f6e79] [cursor=pointer]
+              - button "连接失败" [ref=f6e80] [cursor=pointer]
+              - button "未测试" [ref=f6e81] [cursor=pointer]
+            - button " 一键测试全部" [ref=f6e82] [cursor=pointer]:
+              - generic [ref=f6e83]: 
+              - text: 一键测试全部
+          - generic [ref=f6e84]:
+            - generic [ref=f6e85]:
+              - generic [ref=f6e86] [cursor=pointer]:
+                - generic [ref=f6e87]:
+                  - generic [ref=f6e88]: 
+                  - generic [ref=f6e89]: 默认
+                  - generic [ref=f6e90]: "2"
+                - button " 批量测试" [ref=f6e92]:
+                  - generic [ref=f6e93]: 
+                  - text: 批量测试
+              - generic [ref=f6e94]:
+                - generic [ref=f6e95]:
+                  - generic [ref=f6e96]:
+                    - generic [ref=f6e97]: 测试
+                    - generic [ref=f6e98]: PHP
+                  - generic [ref=f6e99]: http://129.151.8.157:8081/shell.php
+                  - generic [ref=f6e100]:
+                    - generic [ref=f6e101]:
+                      - generic [ref=f6e102]: 已连通
+                      - generic [ref=f6e103]:
+                        - generic [ref=f6e104]: 
+                        - text: 08-21 14:40
+                    - generic [ref=f6e105]:
+                      - button "" [ref=f6e106] [cursor=pointer]
+                      - button "" [ref=f6e108] [cursor=pointer]
+                      - button "" [ref=f6e110] [cursor=pointer]
+                - generic [ref=f6e112]:
+                  - generic [ref=f6e113]:
+                    - generic [ref=f6e114]: PHP靶场
+                    - generic [ref=f6e115]: PHP
+                  - generic [ref=f6e116]: http://129.151.8.157:8081/shell.php
+                  - generic [ref=f6e117]:
+                    - generic [ref=f6e118]:
+                      - generic [ref=f6e119]: 已连通
+                      - generic [ref=f6e120]:
+                        - generic [ref=f6e121]: 
+                        - text: 08-21 14:40
+                    - generic [ref=f6e122]:
+                      - button "" [ref=f6e123] [cursor=pointer]
+                      - button "" [ref=f6e125] [cursor=pointer]
+                      - button "" [ref=f6e127] [cursor=pointer]
+            - generic [ref=f6e129]:
+              - generic [ref=f6e130] [cursor=pointer]:
+                - generic [ref=f6e131]:
+                  - generic [ref=f6e132]: 
+                  - generic [ref=f6e133]: 测试环境
+                  - generic [ref=f6e134]: "2"
+                - button " 批量测试" [ref=f6e136]:
+                  - generic [ref=f6e137]: 
+                  - text: 批量测试
+              - generic [ref=f6e138]:
+                - generic [ref=f6e139]:
+                  - generic [ref=f6e140]:
+                    - generic [ref=f6e141]: 测试节点B
+                    - generic [ref=f6e142]: PHP
+                  - generic [ref=f6e143]: http://192.168.1.100/shell.php
+                  - generic [ref=f6e144]:
+                    - generic [ref=f6e145]:
+                      - generic [ref=f6e146]: 连接失败
+                      - generic [ref=f6e147]:
+                        - generic [ref=f6e148]: 
+                        - text: 08-21 14:41
+                    - generic [ref=f6e149]:
+                      - button "" [ref=f6e150] [cursor=pointer]
+                      - button "" [ref=f6e152] [cursor=pointer]
+                      - button "" [ref=f6e154] [cursor=pointer]
+                  - generic [ref=f6e156]: "Post \"http://192.168.1.100/shell.php\": dial tcp 192.168.1.100:80: connectex: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond."
+                - generic [ref=f6e157]:
+                  - generic [ref=f6e158]:
+                    - generic [ref=f6e159]: 测试节点C
+                    - generic [ref=f6e160]: JSP
+                  - generic [ref=f6e161]: http://10.0.0.50/shell.jsp
+                  - generic [ref=f6e162]:
+                    - generic [ref=f6e163]:
+                      - generic [ref=f6e164]: 连接失败
+                      - generic [ref=f6e165]:
+                        - generic [ref=f6e166]: 
+                        - text: 08-21 14:41
+                    - generic [ref=f6e167]:
+                      - button "" [ref=f6e168] [cursor=pointer]
+                      - button "" [ref=f6e170] [cursor=pointer]
+                      - button "" [ref=f6e172] [cursor=pointer]
+                  - generic [ref=f6e174]: "Post \"http://10.0.0.50/shell.jsp\": dial tcp 10.0.0.50:80: connectex: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond."
+            - generic [ref=f6e175]:
+              - generic [ref=f6e176] [cursor=pointer]:
+                - generic [ref=f6e177]:
+                  - generic [ref=f6e178]: 
+                  - generic [ref=f6e179]: 生产环境
+                  - generic [ref=f6e180]: "1"
+                - button " 批量测试" [ref=f6e182]:
+                  - generic [ref=f6e183]: 
+                  - text: 批量测试
+              - generic [ref=f6e185]:
+                - generic [ref=f6e186]:
+                  - generic [ref=f6e187]: 生产服务器
+                  - generic [ref=f6e188]: ASPX
+                - generic [ref=f6e189]: http://prod.example.com/shell.aspx
+                - generic [ref=f6e190]:
+                  - generic [ref=f6e191]:
+                    - generic [ref=f6e192]: 连接失败
+                    - generic [ref=f6e193]:
+                      - generic [ref=f6e194]: 
+                      - text: 08-21 14:41
+                  - generic [ref=f6e195]:
+                    - button "" [ref=f6e196] [cursor=pointer]
+                    - button "" [ref=f6e198] [cursor=pointer]
+                    - button "" [ref=f6e200] [cursor=pointer]
+                - generic [ref=f6e202]: "Post \"http://prod.example.com/shell.aspx\": dial tcp: lookup prod.example.com: no such host"
+        - text: +         
+  - text:   

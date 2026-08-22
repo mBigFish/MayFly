@@ -1,0 +1,74 @@
+- generic [active] [ref=f27e1]:
+  - generic [ref=f27e2]:
+    - complementary [ref=f27e3]:
+      - generic [ref=f27e4]:
+        - generic [ref=f27e5]: 
+        - generic [ref=f27e7]: Mayfly
+      - navigation [ref=f27e8]:
+        - generic [ref=f27e9] [cursor=pointer]:
+          - generic [ref=f27e10]: 
+          - generic [ref=f27e11]: 连接列表
+        - generic [ref=f27e13] [cursor=pointer]:
+          - generic [ref=f27e14]: 
+          - generic [ref=f27e15]: 文件管理
+        - generic [ref=f27e16] [cursor=pointer]:
+          - generic [ref=f27e17]: 
+          - generic [ref=f27e18]: 命令执行
+        - generic [ref=f27e19] [cursor=pointer]:
+          - generic [ref=f27e20]: 
+          - generic [ref=f27e21]: 交互终端
+        - generic [ref=f27e22] [cursor=pointer]:
+          - generic [ref=f27e23]: 
+          - generic [ref=f27e24]: 数据库
+        - generic [ref=f27e26] [cursor=pointer]:
+          - generic [ref=f27e27]: 
+          - generic [ref=f27e28]: 反弹Shell
+        - generic [ref=f27e30] [cursor=pointer]:
+          - generic [ref=f27e31]: 
+          - generic [ref=f27e32]: 资源管理
+      - generic [ref=f27e33]:
+        - generic [ref=f27e34]:
+          - generic [ref=f27e36]: 节点
+          - generic [ref=f27e37]: "5"
+        - generic [ref=f27e38]:
+          - generic [ref=f27e40]: 已连接
+          - generic [ref=f27e41]: "0"
+        - generic [ref=f27e42]:
+          - generic [ref=f27e44]: PHP
+          - generic [ref=f27e45]: "3"
+        - generic [ref=f27e46]:
+          - generic [ref=f27e48]: 其他
+          - generic [ref=f27e49]: "2"
+    - main [ref=f27e50]:
+      - generic [ref=f27e51]:
+        - generic [ref=f27e53]:
+          - text: 节点列表 /
+          - generic [ref=f27e54]: 资源管理
+        - generic [ref=f27e55]:
+          - generic [ref=f27e56]:
+            - generic [ref=f27e57]: 
+            - textbox "搜索节点..." [ref=f27e58]: admin
+          - button "" [ref=f27e59] [cursor=pointer]
+          - button "" [ref=f27e62] [cursor=pointer]
+          - generic [ref=f27e64] [cursor=pointer]:
+            - generic [ref=f27e65]: 
+            - generic [ref=f27e67]: admin
+            - generic [ref=f27e68]: 
+      - generic [ref=f27e69]:                +                       
+      - generic [ref=f27e185]:
+        - generic [ref=f27e186]:
+          - button "+ 添加服务器" [ref=f27e187] [cursor=pointer]:
+            - generic [ref=f27e188]: +
+            - text: 添加服务器
+          - generic [ref=f27e189]:
+            - generic [ref=f27e190]: 
+            - textbox "搜索名称、IP或分组..." [ref=f27e191]
+          - button "全部" [ref=f27e193] [cursor=pointer]
+          - button " 一键测试" [ref=f27e194] [cursor=pointer]:
+            - generic [ref=f27e195]: 
+            - text: 一键测试
+        - generic [ref=f27e197]:
+          - generic [ref=f27e198]: 
+          - paragraph [ref=f27e199]: 暂无服务器，点击「添加服务器」开始管理
+      - text:       
+  - text:   

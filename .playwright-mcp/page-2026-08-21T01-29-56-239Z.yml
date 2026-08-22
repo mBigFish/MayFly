@@ -1,0 +1,86 @@
+- generic [active] [ref=f7e1]:
+  - generic [ref=f7e2]:
+    - complementary [ref=f7e3]:
+      - generic [ref=f7e4]:
+        - generic [ref=f7e5]: 
+        - generic [ref=f7e7]: Mayfly
+      - navigation [ref=f7e8]:
+        - generic [ref=f7e9] [cursor=pointer]:
+          - generic [ref=f7e10]: 
+          - generic [ref=f7e11]: 文件管理
+        - generic [ref=f7e12] [cursor=pointer]:
+          - generic [ref=f7e13]: 
+          - generic [ref=f7e14]: 命令执行
+        - generic [ref=f7e15] [cursor=pointer]:
+          - generic [ref=f7e16]: 
+          - generic [ref=f7e17]: 交互终端
+        - generic [ref=f7e18] [cursor=pointer]:
+          - generic [ref=f7e19]: 
+          - generic [ref=f7e20]: 数据库
+      - generic [ref=f7e21]:
+        - generic [ref=f7e22]:
+          - generic [ref=f7e24]: 节点
+          - generic [ref=f7e25]: "1"
+        - generic [ref=f7e26]:
+          - generic [ref=f7e28]: 已连接
+          - generic [ref=f7e29]: "0"
+        - generic [ref=f7e30]:
+          - generic [ref=f7e32]: PHP
+          - generic [ref=f7e33]: "1"
+        - generic [ref=f7e34]:
+          - generic [ref=f7e36]: 其他
+          - generic [ref=f7e37]: "0"
+    - main [ref=f7e38]:
+      - generic [ref=f7e39]:
+        - generic [ref=f7e41]:
+          - text: 节点列表 /
+          - generic [ref=f7e42]: 未选择节点
+        - generic [ref=f7e43]:
+          - button "+ 添加节点" [ref=f7e44] [cursor=pointer]:
+            - generic [ref=f7e45]: +
+            - text: 添加节点
+          - button " 连接测试" [ref=f7e46] [cursor=pointer]:
+            - generic [ref=f7e47]: 
+            - text: 连接测试
+          - button " 删除" [ref=f7e48] [cursor=pointer]:
+            - generic [ref=f7e49]: 
+            - text: 删除
+          - generic [ref=f7e50] [cursor=pointer]:
+            - generic [ref=f7e51]: 
+            - generic [ref=f7e52]: admin
+          - button " 退出" [ref=f7e53] [cursor=pointer]:
+            - generic [ref=f7e54]: 
+            - text: 退出
+      - generic [ref=f7e55]:
+        - generic [ref=f7e56]:
+          - generic [ref=f7e57]:
+            - heading " 节点列表" [level=3] [ref=f7e59]:
+              - generic [ref=f7e60]: 
+              - text: 节点列表
+            - generic [ref=f7e62]:
+              - generic [ref=f7e63]: 
+              - textbox "搜索节点..." [ref=f7e64]
+            - generic [ref=f7e67] [cursor=pointer]:
+              - generic [ref=f7e68]: PHP
+              - generic [ref=f7e69]:
+                - generic [ref=f7e70]: 测试
+                - generic [ref=f7e71]: http://129.151.8.157:8081/shell.php
+          - generic [ref=f7e73]:
+            - text:    
+            - generic [ref=f7e98]:
+              - generic [ref=f7e99]:
+                - textbox "数据库主机" [ref=f7e100]: 127.0.0.1
+                - textbox "端口" [ref=f7e101]: "3306"
+                - textbox "用户名" [ref=f7e102]
+                - textbox "密码" [ref=f7e103]
+                - textbox "数据库名" [ref=f7e104]
+                - button " 连接" [ref=f7e105] [cursor=pointer]:
+                  - generic [ref=f7e106]: 
+                  - text: 连接
+              - generic [ref=f7e107]:
+                - textbox "输入 SQL 语句" [ref=f7e108]
+                - button " 执行" [ref=f7e110] [cursor=pointer]:
+                  - generic [ref=f7e111]: 
+                  - text: 执行
+        - text:    
+  - text:  

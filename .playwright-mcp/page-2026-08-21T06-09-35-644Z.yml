@@ -1,0 +1,161 @@
+- generic [active] [ref=f38e1]:
+  - generic [ref=f38e2]:
+    - complementary [ref=f38e3]:
+      - generic [ref=f38e4]:
+        - generic [ref=f38e5]: 
+        - generic [ref=f38e7]: Mayfly
+      - navigation [ref=f38e8]:
+        - generic [ref=f38e9] [cursor=pointer]:
+          - generic [ref=f38e10]: 
+          - generic [ref=f38e11]: 连接列表
+        - generic [ref=f38e13] [cursor=pointer]:
+          - generic [ref=f38e14]: 
+          - generic [ref=f38e15]: 文件管理
+        - generic [ref=f38e16] [cursor=pointer]:
+          - generic [ref=f38e17]: 
+          - generic [ref=f38e18]: 命令执行
+        - generic [ref=f38e19] [cursor=pointer]:
+          - generic [ref=f38e20]: 
+          - generic [ref=f38e21]: 交互终端
+        - generic [ref=f38e22] [cursor=pointer]:
+          - generic [ref=f38e23]: 
+          - generic [ref=f38e24]: 数据库
+        - generic [ref=f38e26] [cursor=pointer]:
+          - generic [ref=f38e27]: 
+          - generic [ref=f38e28]: 反弹Shell
+        - generic [ref=f38e30] [cursor=pointer]:
+          - generic [ref=f38e31]: 
+          - generic [ref=f38e32]: 资源管理
+      - generic [ref=f38e33]:
+        - generic [ref=f38e34]:
+          - generic [ref=f38e36]: 节点
+          - generic [ref=f38e37]: "5"
+        - generic [ref=f38e38]:
+          - generic [ref=f38e40]: 已连接
+          - generic [ref=f38e41]: "0"
+        - generic [ref=f38e42]:
+          - generic [ref=f38e44]: PHP
+          - generic [ref=f38e45]: "3"
+        - generic [ref=f38e46]:
+          - generic [ref=f38e48]: 其他
+          - generic [ref=f38e49]: "2"
+    - main [ref=f38e50]:
+      - generic [ref=f38e51]:
+        - generic [ref=f38e53]:
+          - text: 节点列表 /
+          - generic [ref=f38e54]: 未选择节点
+        - generic [ref=f38e55]:
+          - generic [ref=f38e56]:
+            - generic [ref=f38e57]: 
+            - textbox "搜索节点..." [ref=f38e58]
+          - button "" [ref=f38e59] [cursor=pointer]
+          - button "" [ref=f38e62] [cursor=pointer]
+          - generic [ref=f38e64] [cursor=pointer]:
+            - generic [ref=f38e65]: 
+            - generic [ref=f38e67]: admin
+            - generic [ref=f38e68]: 
+      - generic [ref=f38e69]:
+        - text:               
+        - generic [ref=f38e70]:
+          - generic [ref=f38e71]:
+            - button "+ 添加节点" [ref=f38e72] [cursor=pointer]:
+              - generic [ref=f38e73]: +
+              - text: 添加节点
+            - generic [ref=f38e74]:
+              - generic [ref=f38e75]: 
+              - textbox "搜索连接名称或URL..." [ref=f38e76]
+            - generic [ref=f38e77]:
+              - button "全部" [ref=f38e78] [cursor=pointer]
+              - button "已连通" [ref=f38e79] [cursor=pointer]
+              - button "连接失败" [ref=f38e80] [cursor=pointer]
+              - button "未测试" [ref=f38e81] [cursor=pointer]
+            - button " 一键测试全部" [ref=f38e82] [cursor=pointer]:
+              - generic [ref=f38e83]: 
+              - text: 一键测试全部
+          - generic [ref=f38e84]:
+            - generic [ref=f38e85]:
+              - generic [ref=f38e86] [cursor=pointer]:
+                - generic [ref=f38e87]:
+                  - generic [ref=f38e88]: 
+                  - generic [ref=f38e89]: 默认
+                  - generic [ref=f38e90]: "2"
+                - button " 批量测试" [ref=f38e92]:
+                  - generic [ref=f38e93]: 
+                  - text: 批量测试
+              - generic [ref=f38e94]:
+                - generic [ref=f38e95]:
+                  - generic [ref=f38e96]:
+                    - generic [ref=f38e97]: 测试
+                    - generic [ref=f38e98]: PHP
+                  - generic [ref=f38e99]: http://129.151.8.157:8081/shell.php
+                  - generic [ref=f38e100]:
+                    - generic [ref=f38e101]: 未测试
+                    - generic [ref=f38e102]:
+                      - button "" [ref=f38e103] [cursor=pointer]
+                      - button "" [ref=f38e105] [cursor=pointer]
+                      - button "" [ref=f38e107] [cursor=pointer]
+                - generic [ref=f38e109]:
+                  - generic [ref=f38e110]:
+                    - generic [ref=f38e111]: PHP靶场
+                    - generic [ref=f38e112]: PHP
+                  - generic [ref=f38e113]: http://129.151.8.157:8081/shell.php
+                  - generic [ref=f38e114]:
+                    - generic [ref=f38e115]: 未测试
+                    - generic [ref=f38e116]:
+                      - button "" [ref=f38e117] [cursor=pointer]
+                      - button "" [ref=f38e119] [cursor=pointer]
+                      - button "" [ref=f38e121] [cursor=pointer]
+            - generic [ref=f38e123]:
+              - generic [ref=f38e124] [cursor=pointer]:
+                - generic [ref=f38e125]:
+                  - generic [ref=f38e126]: 
+                  - generic [ref=f38e127]: 测试环境
+                  - generic [ref=f38e128]: "2"
+                - button " 批量测试" [ref=f38e130]:
+                  - generic [ref=f38e131]: 
+                  - text: 批量测试
+              - generic [ref=f38e132]:
+                - generic [ref=f38e133]:
+                  - generic [ref=f38e134]:
+                    - generic [ref=f38e135]: 测试节点B
+                    - generic [ref=f38e136]: PHP
+                  - generic [ref=f38e137]: http://192.168.1.100/shell.php
+                  - generic [ref=f38e138]:
+                    - generic [ref=f38e139]: 未测试
+                    - generic [ref=f38e140]:
+                      - button "" [ref=f38e141] [cursor=pointer]
+                      - button "" [ref=f38e143] [cursor=pointer]
+                      - button "" [ref=f38e145] [cursor=pointer]
+                - generic [ref=f38e147]:
+                  - generic [ref=f38e148]:
+                    - generic [ref=f38e149]: 测试节点C
+                    - generic [ref=f38e150]: JSP
+                  - generic [ref=f38e151]: http://10.0.0.50/shell.jsp
+                  - generic [ref=f38e152]:
+                    - generic [ref=f38e153]: 未测试
+                    - generic [ref=f38e154]:
+                      - button "" [ref=f38e155] [cursor=pointer]
+                      - button "" [ref=f38e157] [cursor=pointer]
+                      - button "" [ref=f38e159] [cursor=pointer]
+            - generic [ref=f38e161]:
+              - generic [ref=f38e162] [cursor=pointer]:
+                - generic [ref=f38e163]:
+                  - generic [ref=f38e164]: 
+                  - generic [ref=f38e165]: 生产环境
+                  - generic [ref=f38e166]: "1"
+                - button " 批量测试" [ref=f38e168]:
+                  - generic [ref=f38e169]: 
+                  - text: 批量测试
+              - generic [ref=f38e171]:
+                - generic [ref=f38e172]:
+                  - generic [ref=f38e173]: 生产服务器
+                  - generic [ref=f38e174]: ASPX
+                - generic [ref=f38e175]: http://prod.example.com/shell.aspx
+                - generic [ref=f38e176]:
+                  - generic [ref=f38e177]: 未测试
+                  - generic [ref=f38e178]:
+                    - button "" [ref=f38e179] [cursor=pointer]
+                    - button "" [ref=f38e181] [cursor=pointer]
+                    - button "" [ref=f38e183] [cursor=pointer]
+        - text: +         
+  - text:   

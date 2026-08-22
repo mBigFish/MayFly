@@ -1,151 +1,137 @@
-# Mayfly WebShell
+# Mayfly
 
-一个基于 **Go + Web** 的开源 WebShell 管理工具（网页版蚁剑/菜刀/冰蝎类工具），用于授权渗透测试与自有资产的管理。
+渗透测试管理平台 — 前后端分离架构，Go + Vue 3。
 
-> ⚠️ **合规声明**：本工具仅用于**授权的安全测试、渗透测试**以及**管理自有资产**。请勿用于任何未授权访问，使用者需自行承担相应法律责任。
+## 功能概览
 
-## 核心架构
-
-```
-┌─ 管理端（Web 界面）──────┐          HTTP 请求          ┌─ 目标服务器 ────────┐
-│  节点管理 / 命令执行      │  ───────────────────────►   │  一句话 WebShell 脚本 │
-│  文件管理 / 数据库 / 终端  │  （base64 + JSON 协议）      │  shell.php / jsp /   │
-└─────────────────────────┘  ◄───────────────────────   │  aspx / asp          │
-                                                     └─────────────────────┘
-```
-
-- **管理端**：单一 Go 二进制 + 网页前端，浏览器访问，跨平台、易部署
-- **服务端脚本**：内置 4 种语言的功能型 WebShell（PHP / JSP / ASPX / ASP），通过「脚本生成器」一键生成
-
-## 功能特性
-
-- **节点管理** - 多目标节点增删改查，按连接密码 / 语言类型区分
-- **命令执行** - 在目标服务器执行系统命令并回显结果
-- **文件管理** - 目录浏览、文件读取/编辑、上传、下载、删除、重命名、新建目录
-- **数据库管理** - 连接目标 MySQL 并执行 SQL（PHP 端，结果表格化展示）
-- **虚拟终端** - 基于命令执行的伪交互终端（xterm.js，维护工作目录）
-- **脚本生成器** - 一键生成/复制/下载 4 种语言的 WebShell 脚本，支持自定义连接密码
-- **JWT 认证** - 登录鉴权，节点数据本地持久化（JSON）
+| 模块 | 说明 |
+|------|------|
+| 目标管理 | WebShell 目标 CRUD、连接测试、命令执行 |
+| 文件管理 | 列目录、读/写/编辑（Monaco Editor）、重命名、删除、下载、上传、新建目录 |
+| 终端 | 本地终端 + SSH 交互式终端（WebSocket + xterm.js） |
+| SSH 服务器 | 服务器管理、连接测试 |
+| 脚本生成 | WebShell 脚本（PHP/JSP/ASP/ASPX，从 payloads/ 目录读取） |
+| 任务中心 | 批量连接测试、批量命令执行、Worker Pool 并发 |
+| 请求检查器 | 记录每次请求的 Request/Response/Duration/Status |
+| 插件系统 | 插件接口 + 注册中心 + 内置插件（SystemInfo/ProcessViewer/NetworkInfo） |
+| 审计日志 | 用户操作审计 |
+| 用户认证 | JWT + RBAC（admin/operator/viewer） |
 
 ## 技术栈
 
-| 组件 | 技术 |
-|------|------|
-| 后端 | Go + Gin + gorilla/websocket |
-| 前端 | 原生 JS + xterm.js + FontAwesome |
-| 认证 | JWT (golang-jwt) |
-| 存储 | 本地 JSON 文件 |
+**后端**: Go 1.23 + Gin + GORM + SQLite + Zap + JWT
+**前端**: Vue 3 + TypeScript + Vite + Element Plus + Pinia + xterm.js + Monaco Editor
 
 ## 快速开始
 
-### 1. 编译
+### 本地开发
 
 ```bash
-go mod tidy
-go build -o mayfly .
+# 1. 构建前端
+cd frontend
+npm install
+npm run build
+
+# 2. 编译后端
+cd ..
+go build -o mayfly ./cmd/server/
+
+# 3. 启动
+./mayfly --config configs/config.yaml
 ```
 
-Windows 也可直接双击 `start.bat` 启动。
+访问 `http://localhost:8080`，默认账户 `admin` / `mayfly123`。
 
-### 2. 运行
+### 前端热更新开发
 
 ```bash
-# 默认配置（端口 8080，账号 admin/mayfly123）
-./mayfly
+# 终端 1：启动后端
+go build -o mayfly ./cmd/server/ && ./mayfly --config configs/config.yaml
 
-# 自定义配置
-MAYFLY_PORT=9090 MAYFLY_USER=myuser MAYFLY_PASS=mypassword ./mayfly
+# 终端 2：启动前端 dev server
+cd frontend && npm run dev
 ```
 
-### 3. 使用流程
+前端运行在 `http://localhost:3000`，API 自动代理到后端 8080。
 
-1. 打开 `http://localhost:8080`，使用 `admin / mayfly123` 登录
-2. 点击侧边栏「脚本生成器」，选择语言生成 WebShell 脚本
-3. 将生成的脚本部署到目标 Web 服务器（Web 可访问目录）
-4. 回到节点列表，点击「+」添加节点，填写脚本 URL、语言类型、连接密码
-5. 选中节点后即可使用「命令执行 / 文件管理 / 数据库 / 虚拟终端」
+### Docker 部署
 
-## 服务端脚本支持
+```bash
+# 构建并启动
+docker compose up -d
 
-| 语言 | 文件 | 命令执行 | 文件管理 | 数据库 | 说明 |
-|------|------|:---:|:---:|:---:|------|
-| PHP  | `shell.php`  | ✅ | ✅ | ✅ MySQL | 最通用，PDO/mysqli |
-| JSP  | `shell.jsp`  | ✅ | ✅ | — | 依赖 JDK 内置 Nashorn（JDK 8~14） |
-| ASPX | `shell.aspx` | ✅ | ✅ | — | .NET 内置序列化，IIS |
-| ASP  | `shell.asp`  | ✅ | ✅ | — | VBScript + WScript.Shell，明文协议 |
+# 查看日志
+docker compose logs -f
 
-## 通信协议
-
-管理端与 WebShell 脚本之间的通信协议（非 ASP）：
-
-- **请求**：`POST` 到脚本 URL，表单字段 `<连接密码> = base64(json)`
-  - `json = {"action": "cmd|fileList|...", "params": {...}}`
-- **响应**：HTTP body = `base64(json)`，`json = {"status":"ok|error","data":"base64(结果)","message":""}`
-
-ASP 使用明文表单协议（VBScript 无 base64/JSON 能力）。
-
-## 配置项
-
-| 环境变量 | 默认值 | 说明 |
-|----------|--------|------|
-| `MAYFLY_PORT` | 8080 | 监听端口 |
-| `MAYFLY_USER` | admin | 登录用户名 |
-| `MAYFLY_PASS` | mayfly123 | 登录密码 |
-| `MAYFLY_JWT_SECRET` | mayfly-secret-key-change-in-production | JWT 签名密钥 |
+# 停止
+docker compose down
+```
 
 ## 项目结构
 
 ```
 Mayfly/
-├── main.go                      # 程序入口，路由注册
-├── go.mod
-├── config/
-│   └── config.go                # 配置管理
-├── payloads/                    # WebShell 服务端脚本模板
-│   ├── shell.php
-│   ├── shell.jsp
-│   ├── shell.aspx
-│   └── shell.asp
+├── cmd/server/main.go          # 主入口
+├── configs/config.yaml         # 配置文件
 ├── internal/
-│   ├── handler/
-│   │   ├── auth.go              # 登录/JWT
-│   │   ├── node.go              # 节点 CRUD + 核心操作 API
-│   │   ├── terminal.go          # 本地 WebSSH 终端（保留）
-│   │   └── terminal_ws.go       # 虚拟终端 WebSocket
-│   ├── middleware/
-│   │   └── auth.go              # 认证中间件
-│   ├── model/
-│   │   ├── node.go              # 节点模型
-│   │   └── session.go
-│   ├── store/
-│   │   └── store.go             # 节点 JSON 持久化
-│   └── service/
-│       ├── shell.go             # WebShell 客户端 + 协议编解码
-│       └── ...                  # session/terminal 服务
-└── web/
-    ├── index.html               # 管理端主界面
-    ├── login.html               # 登录页
-    └── static/
-        ├── css/style.css
-        └── js/{app.js, login.js}
+│   ├── api/                    # API 路由 + 处理器
+│   ├── config/                 # 配置加载
+│   ├── crypto/                 # AES 加解密
+│   ├── database/               # SQLite + GORM
+│   ├── logger/                 # Zap 日志
+│   ├── model/                  # 数据模型
+│   ├── plugin/                 # 插件系统
+│   ├── protocol/               # 协议适配器（PHP/JSP/ASP/ASPX）
+│   ├── service/                # 业务逻辑 + Task Worker Pool
+│   └── transport/              # HTTP 传输层
+├── frontend/                   # Vue 3 前端
+│   └── src/
+│       ├── api/                # API 调用
+│       ├── router/             # Vue Router
+│       └── views/              # 页面组件
+├── payloads/                   # WebShell 脚本文件
+├── web/dist/                   # 前端构建产物（SPA）
+├── Dockerfile
+├── docker-compose.yml
+└── Makefile
 ```
 
-## 安全注意事项
+## WebShell 协议
 
-1. **修改默认密码** - 务必通过环境变量修改登录账号与密码
-2. **使用 HTTPS** - 管理端建议配合 Nginx 使用 HTTPS
-3. **修改脚本连接密码** - 生成 WebShell 脚本时设置高强度连接密码，而非默认 `mayfly`
-4. **最小权限** - 管理端无需以 root 运行
-5. **合规使用** - 仅对已授权目标使用本工具
+脚本文件位于 `payloads/` 目录，支持自定义连接密码：
 
-## 后续规划
+| 类型 | 文件 | 协议 |
+|------|------|------|
+| PHP | shell.php | base64+JSON |
+| JSP | shell.jsp | base64+JSON |
+| ASPX | shell.aspx | base64+JSON |
+| ASP | shell.asp | 明文 |
 
-- [ ] 数据库管理支持更多语言/类型（JSP JDBC、ASPX SQL Server）
-- [ ] 真 PTY 虚拟终端（持久进程 + 管道）
-- [ ] 通信加密（自定义编解码器，规避明文特征）
-- [ ] 批量命令/文件分片下载（大文件）
-- [ ] 系统信息面板（CPU/内存/进程列表）
-- [ ] 节点分组与搜索
+修改脚本只需编辑文件，无需重新编译。
+
+## 配置说明
+
+`configs/config.yaml`:
+
+```yaml
+server:
+  port: 8080
+  mode: debug  # debug / release
+
+database:
+  path: data/mayfly.db
+
+auth:
+  jwt_secret: your-secret-key
+  jwt_expire: 24h
+
+terminal:
+  shell: powershell.exe  # Windows / bash (Linux)
+
+log:
+  level: info
+  dir: logs
+```
 
 ## License
 

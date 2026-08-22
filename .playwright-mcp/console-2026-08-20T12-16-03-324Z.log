@@ -1,0 +1,6 @@
+[      16ms] TypeError: Cannot read properties of null (reading 'querySelector')
+    at http://localhost:18080/static/js/login.js:13:30
+    at http://localhost:18080/static/js/login.js:54:3
+[      17ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:18080/login.html:0
+[   22045ms] [VERBOSE] [DOM] Password field is not contained in a form: (More info: https://goo.gl/9p2vKq) %o @ http://localhost:18080/index.html:0
+[   22047ms] [ERROR] Failed to load resource: the server responded with a status of 404 (File not found) @ http://localhost:18080/api/nodes:0

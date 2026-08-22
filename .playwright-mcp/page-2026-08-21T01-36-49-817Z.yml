@@ -1,0 +1,46 @@
+- generic [ref=e2]:
+  - generic [ref=e4]:
+    - generic [ref=e5]: 
+    - heading "Mayfly" [level=1] [ref=e7]
+    - paragraph [ref=e8]: 轻量级 WebShell 连接管理工具
+    - generic [ref=e9]:
+      - generic [ref=e10]:
+        - generic [ref=e11]: 
+        - generic [ref=e13]:
+          - heading "命令执行" [level=4] [ref=e14]
+          - paragraph [ref=e15]: 支持交互式命令行，实时输出结果
+      - generic [ref=e16]:
+        - generic [ref=e17]: 
+        - generic [ref=e19]:
+          - heading "文件管理" [level=4] [ref=e20]
+          - paragraph [ref=e21]: 浏览、编辑、上传、下载，完整文件操作
+      - generic [ref=e22]:
+        - generic [ref=e23]: 
+        - generic [ref=e25]:
+          - heading "数据库管理" [level=4] [ref=e26]
+          - paragraph [ref=e27]: 远程连接 MySQL，在线执行 SQL 查询
+      - generic [ref=e28]:
+        - generic [ref=e29]: 
+        - generic [ref=e31]:
+          - heading "多类型支持" [level=4] [ref=e32]
+          - paragraph [ref=e33]: PHP / JSP / ASP / ASPX 多脚本平台兼容
+    - generic [ref=e34]:
+      - generic [ref=e35]: 
+      - generic [ref=e36]: Mayfly Project
+  - generic [ref=e38]:
+    - heading "登录" [level=2] [ref=e40]
+    - generic [ref=e41]:
+      - generic [ref=e42]:
+        - generic [ref=e43]: 用户名
+        - textbox "用户名" [ref=e44]:
+          - /placeholder: 请输入用户名
+      - generic [ref=e45]:
+        - generic [ref=e46]: 密码
+        - generic [ref=e47]:
+          - textbox "密码" [ref=e48]:
+            - /placeholder: 请输入密码
+          - button "" [ref=e49] [cursor=pointer]
+      - generic [ref=e52] [cursor=pointer]:
+        - checkbox "记住我"
+        - text: 记住我
+      - button "登录" [ref=e54] [cursor=pointer]

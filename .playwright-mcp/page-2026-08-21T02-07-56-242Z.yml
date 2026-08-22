@@ -1,0 +1,103 @@
+- generic [active] [ref=f11e1]:
+  - generic [ref=f11e2]:
+    - complementary [ref=f11e3]:
+      - generic [ref=f11e4]:
+        - generic [ref=f11e5]: 
+        - generic [ref=f11e7]: Mayfly
+      - navigation [ref=f11e8]:
+        - generic [ref=f11e9] [cursor=pointer]:
+          - generic [ref=f11e10]: 
+          - generic [ref=f11e11]: 文件管理
+        - generic [ref=f11e12] [cursor=pointer]:
+          - generic [ref=f11e13]: 
+          - generic [ref=f11e14]: 命令执行
+        - generic [ref=f11e15] [cursor=pointer]:
+          - generic [ref=f11e16]: 
+          - generic [ref=f11e17]: 交互终端
+        - generic [ref=f11e18] [cursor=pointer]:
+          - generic [ref=f11e19]: 
+          - generic [ref=f11e20]: 数据库
+        - generic [ref=f11e22] [cursor=pointer]:
+          - generic [ref=f11e23]: 
+          - generic [ref=f11e24]: 连接列表
+      - generic [ref=f11e25]:
+        - generic [ref=f11e26]:
+          - generic [ref=f11e28]: 节点
+          - generic [ref=f11e29]: "1"
+        - generic [ref=f11e30]:
+          - generic [ref=f11e32]: 已连接
+          - generic [ref=f11e33]: "0"
+        - generic [ref=f11e34]:
+          - generic [ref=f11e36]: PHP
+          - generic [ref=f11e37]: "1"
+        - generic [ref=f11e38]:
+          - generic [ref=f11e40]: 其他
+          - generic [ref=f11e41]: "0"
+    - main [ref=f11e42]:
+      - generic [ref=f11e43]:
+        - generic [ref=f11e45]:
+          - text: 节点列表 /
+          - generic [ref=f11e46]: 未选择节点
+        - generic [ref=f11e47]:
+          - generic [ref=f11e48]:
+            - generic [ref=f11e49]: 
+            - textbox "搜索节点..." [ref=f11e50]
+          - button "" [ref=f11e51] [cursor=pointer]
+          - button "" [ref=f11e54] [cursor=pointer]
+          - generic [ref=f11e56] [cursor=pointer]:
+            - generic [ref=f11e57]: 
+            - generic [ref=f11e59]: admin
+            - generic [ref=f11e60]: 
+      - generic [ref=f11e61]:
+        - generic [ref=f11e62]:
+          - generic [ref=f11e63]:
+            - generic [ref=f11e64]:
+              - heading " 节点列表" [level=3] [ref=f11e65]:
+                - generic [ref=f11e66]: 
+                - text: 节点列表
+              - generic [ref=f11e67]:
+                - button "+ 添加" [ref=f11e68] [cursor=pointer]:
+                  - generic [ref=f11e69]: +
+                  - text: 添加
+                - button " 测试" [ref=f11e70] [cursor=pointer]:
+                  - generic [ref=f11e71]: 
+                  - text: 测试
+                - button " 删除" [ref=f11e72] [cursor=pointer]:
+                  - generic [ref=f11e73]: 
+                  - text: 删除
+            - generic [ref=f11e75]:
+              - generic [ref=f11e76]: 
+              - textbox "搜索节点..." [ref=f11e77]
+            - generic [ref=f11e80] [cursor=pointer]:
+              - generic [ref=f11e81]: PHP
+              - generic [ref=f11e82]:
+                - generic [ref=f11e83]: 测试
+                - generic [ref=f11e84]: http://129.151.8.157:8081/shell.php
+          - generic [ref=f11e86]:
+            - generic [ref=f11e87]:
+              - generic [ref=f11e88]:
+                - textbox "当前路径" [ref=f11e89]
+                - button " 刷新" [ref=f11e90] [cursor=pointer]:
+                  - generic [ref=f11e91]: 
+                  - text: 刷新
+                - button " 上级" [ref=f11e92] [cursor=pointer]:
+                  - generic [ref=f11e93]: 
+                  - text: 上级
+                - button " 新建目录" [ref=f11e94] [cursor=pointer]:
+                  - generic [ref=f11e95]: 
+                  - text: 新建目录
+                - generic [ref=f11e96] [cursor=pointer]:
+                  - generic [ref=f11e97]: 
+                  - text: 上传
+              - table [ref=f11e98]:
+                - rowgroup [ref=f11e99]:
+                  - row [ref=f11e100]:
+                    - columnheader "名称" [ref=f11e101]
+                    - columnheader "类型" [ref=f11e102]
+                    - columnheader "大小" [ref=f11e103]
+                    - columnheader "修改时间" [ref=f11e104]
+                    - columnheader "操作" [ref=f11e105]
+                - rowgroup
+            - text:  
+        - text:      
+  - text:  

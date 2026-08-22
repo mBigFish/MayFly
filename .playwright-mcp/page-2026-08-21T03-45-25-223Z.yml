@@ -1,0 +1,114 @@
+- generic [active] [ref=f31e1]:
+  - generic [ref=f31e2]:
+    - complementary [ref=f31e3]:
+      - generic [ref=f31e4]:
+        - generic [ref=f31e5]: 
+        - generic [ref=f31e7]: Mayfly
+      - navigation [ref=f31e8]:
+        - generic [ref=f31e9] [cursor=pointer]:
+          - generic [ref=f31e10]: 
+          - generic [ref=f31e11]: 连接列表
+        - generic [ref=f31e13] [cursor=pointer]:
+          - generic [ref=f31e14]: 
+          - generic [ref=f31e15]: 文件管理
+        - generic [ref=f31e16] [cursor=pointer]:
+          - generic [ref=f31e17]: 
+          - generic [ref=f31e18]: 命令执行
+        - generic [ref=f31e19] [cursor=pointer]:
+          - generic [ref=f31e20]: 
+          - generic [ref=f31e21]: 交互终端
+        - generic [ref=f31e22] [cursor=pointer]:
+          - generic [ref=f31e23]: 
+          - generic [ref=f31e24]: 数据库
+        - generic [ref=f31e26] [cursor=pointer]:
+          - generic [ref=f31e27]: 
+          - generic [ref=f31e28]: 反弹Shell
+        - generic [ref=f31e30] [cursor=pointer]:
+          - generic [ref=f31e31]: 
+          - generic [ref=f31e32]: 资源管理
+      - generic [ref=f31e33]:
+        - generic [ref=f31e34]:
+          - generic [ref=f31e36]: 节点
+          - generic [ref=f31e37]: "5"
+        - generic [ref=f31e38]:
+          - generic [ref=f31e40]: 已连接
+          - generic [ref=f31e41]: "0"
+        - generic [ref=f31e42]:
+          - generic [ref=f31e44]: PHP
+          - generic [ref=f31e45]: "3"
+        - generic [ref=f31e46]:
+          - generic [ref=f31e48]: 其他
+          - generic [ref=f31e49]: "2"
+    - main [ref=f31e50]:
+      - generic [ref=f31e51]:
+        - generic [ref=f31e53]:
+          - text: 节点列表 /
+          - generic [ref=f31e54]: 资源管理
+        - generic [ref=f31e55]:
+          - generic [ref=f31e56]:
+            - generic [ref=f31e57]: 
+            - textbox "搜索节点..." [ref=f31e58]
+          - button "" [ref=f31e59] [cursor=pointer]
+          - button "" [ref=f31e62] [cursor=pointer]
+          - generic [ref=f31e64] [cursor=pointer]:
+            - generic [ref=f31e65]: 
+            - generic [ref=f31e67]: admin
+            - generic [ref=f31e68]: 
+      - generic [ref=f31e69]:                +                       
+      - generic [ref=f31e185]:
+        - generic [ref=f31e186]:
+          - button "+ 添加服务器" [ref=f31e187] [cursor=pointer]:
+            - generic [ref=f31e188]: +
+            - text: 添加服务器
+          - generic [ref=f31e189]:
+            - generic [ref=f31e190]: 
+            - textbox "搜索名称、IP或分组..." [ref=f31e191]
+          - button "全部" [ref=f31e193] [cursor=pointer]
+          - button " 一键测试" [ref=f31e194] [cursor=pointer]:
+            - generic [ref=f31e195]: 
+            - text: 一键测试
+        - generic [ref=f31e196]:
+          - generic [ref=f31e267]:
+            - generic [ref=f31e269] [cursor=pointer]:
+              - generic [ref=f31e270]: 
+              - generic [ref=f31e271]: 
+              - text: 测试环境 1
+            - generic [ref=f31e273] [cursor=pointer]:
+              - generic [ref=f31e274]: 
+              - generic [ref=f31e276]:
+                - generic [ref=f31e277]:
+                  - text: DB服务器01
+                  - generic [ref=f31e278]: 未测试
+                - generic [ref=f31e279]:
+                  - generic [ref=f31e280]: 10.0.0.50:2222
+                  - generic [ref=f31e282]: ubuntu
+                  - generic [ref=f31e284]: 数据库服务器
+              - generic [ref=f31e285]:
+                - button "" [ref=f31e286]
+                - button "" [ref=f31e288]
+                - button "" [ref=f31e290]
+          - generic [ref=f31e292]:
+            - generic [ref=f31e294] [cursor=pointer]:
+              - generic [ref=f31e295]: 
+              - generic [ref=f31e296]: 
+              - text: 生产环境 1
+            - generic [ref=f31e298] [cursor=pointer]:
+              - generic [ref=f31e299]: 
+              - generic [ref=f31e301]:
+                - generic [ref=f31e302]:
+                  - text: Web服务器01
+                  - generic [ref=f31e303]: 未测试
+                - generic [ref=f31e304]:
+                  - generic [ref=f31e305]: 192.168.1.100:22
+                  - generic [ref=f31e307]: root
+                  - generic [ref=f31e309]: 测试服务器
+              - generic [ref=f31e310]:
+                - button "" [ref=f31e311]
+                - button "" [ref=f31e313]
+                - button "" [ref=f31e315]
+      - text:       
+  - text:   
+  - generic [ref=f31e317]:
+    - generic [ref=f31e318]: 
+    - generic [ref=f31e320]: 创建成功
+    - button "" [ref=f31e321] [cursor=pointer]

@@ -1,0 +1,124 @@
+- generic [active] [ref=f17e1]:
+  - generic [ref=f17e2]:
+    - complementary [ref=f17e3]:
+      - generic [ref=f17e4]:
+        - generic [ref=f17e5]: 
+        - generic [ref=f17e7]: Mayfly
+      - navigation [ref=f17e8]:
+        - generic [ref=f17e9] [cursor=pointer]:
+          - generic [ref=f17e10]: 
+          - generic [ref=f17e11]: 文件管理
+        - generic [ref=f17e12] [cursor=pointer]:
+          - generic [ref=f17e13]: 
+          - generic [ref=f17e14]: 命令执行
+        - generic [ref=f17e15] [cursor=pointer]:
+          - generic [ref=f17e16]: 
+          - generic [ref=f17e17]: 交互终端
+        - generic [ref=f17e18] [cursor=pointer]:
+          - generic [ref=f17e19]: 
+          - generic [ref=f17e20]: 数据库
+        - generic [ref=f17e22] [cursor=pointer]:
+          - generic [ref=f17e23]: 
+          - generic [ref=f17e24]: 连接列表
+      - generic [ref=f17e25]:
+        - generic [ref=f17e26]:
+          - generic [ref=f17e28]: 节点
+          - generic [ref=f17e29]: "5"
+        - generic [ref=f17e30]:
+          - generic [ref=f17e32]: 已连接
+          - generic [ref=f17e33]: "0"
+        - generic [ref=f17e34]:
+          - generic [ref=f17e36]: PHP
+          - generic [ref=f17e37]: "3"
+        - generic [ref=f17e38]:
+          - generic [ref=f17e40]: 其他
+          - generic [ref=f17e41]: "2"
+    - main [ref=f17e42]:
+      - generic [ref=f17e43]:
+        - generic [ref=f17e45]:
+          - text: 节点列表 /
+          - generic [ref=f17e46]: 未选择节点
+        - generic [ref=f17e47]:
+          - generic [ref=f17e48]:
+            - generic [ref=f17e49]: 
+            - textbox "搜索节点..." [ref=f17e50]
+          - button "" [ref=f17e51] [cursor=pointer]
+          - button "" [ref=f17e54] [cursor=pointer]
+          - generic [ref=f17e56] [cursor=pointer]:
+            - generic [ref=f17e57]: 
+            - generic [ref=f17e59]: admin
+            - generic [ref=f17e60]: 
+      - generic [ref=f17e61]:
+        - generic [ref=f17e62]:
+          - generic [ref=f17e63]:
+            - generic [ref=f17e64]:
+              - heading " 节点列表" [level=3] [ref=f17e65]:
+                - generic [ref=f17e66]: 
+                - text: 节点列表
+              - generic [ref=f17e67]:
+                - button "+ 添加" [ref=f17e68] [cursor=pointer]:
+                  - generic [ref=f17e69]: +
+                  - text: 添加
+                - button " 测试" [ref=f17e70] [cursor=pointer]:
+                  - generic [ref=f17e71]: 
+                  - text: 测试
+                - button " 删除" [ref=f17e72] [cursor=pointer]:
+                  - generic [ref=f17e73]: 
+                  - text: 删除
+            - generic [ref=f17e75]:
+              - generic [ref=f17e76]: 
+              - textbox "搜索节点..." [ref=f17e77]
+            - generic [ref=f17e79]:
+              - generic [ref=f17e80] [cursor=pointer]:
+                - generic [ref=f17e81]: PHP
+                - generic [ref=f17e82]:
+                  - generic [ref=f17e83]: 测试
+                  - generic [ref=f17e84]: http://129.151.8.157:8081/shell.php
+              - generic [ref=f17e85] [cursor=pointer]:
+                - generic [ref=f17e86]: PHP
+                - generic [ref=f17e87]:
+                  - generic [ref=f17e88]: PHP靶场
+                  - generic [ref=f17e89]: http://129.151.8.157:8081/shell.php
+              - generic [ref=f17e90] [cursor=pointer]:
+                - generic [ref=f17e91]: PHP
+                - generic [ref=f17e92]:
+                  - generic [ref=f17e93]: 测试节点B
+                  - generic [ref=f17e94]: http://192.168.1.100/shell.php
+              - generic [ref=f17e95] [cursor=pointer]:
+                - generic [ref=f17e96]: JSP
+                - generic [ref=f17e97]:
+                  - generic [ref=f17e98]: 测试节点C
+                  - generic [ref=f17e99]: http://10.0.0.50/shell.jsp
+              - generic [ref=f17e100] [cursor=pointer]:
+                - generic [ref=f17e101]: ASPX
+                - generic [ref=f17e102]:
+                  - generic [ref=f17e103]: 生产服务器
+                  - generic [ref=f17e104]: http://prod.example.com/shell.aspx
+          - generic [ref=f17e106]:
+            - generic [ref=f17e107]:
+              - generic [ref=f17e108]:
+                - textbox "当前路径" [ref=f17e109]
+                - button " 刷新" [ref=f17e110] [cursor=pointer]:
+                  - generic [ref=f17e111]: 
+                  - text: 刷新
+                - button " 上级" [ref=f17e112] [cursor=pointer]:
+                  - generic [ref=f17e113]: 
+                  - text: 上级
+                - button " 新建目录" [ref=f17e114] [cursor=pointer]:
+                  - generic [ref=f17e115]: 
+                  - text: 新建目录
+                - generic [ref=f17e116] [cursor=pointer]:
+                  - generic [ref=f17e117]: 
+                  - text: 上传
+              - table [ref=f17e118]:
+                - rowgroup [ref=f17e119]:
+                  - row [ref=f17e120]:
+                    - columnheader "名称" [ref=f17e121]
+                    - columnheader "类型" [ref=f17e122]
+                    - columnheader "大小" [ref=f17e123]
+                    - columnheader "修改时间" [ref=f17e124]
+                    - columnheader "操作" [ref=f17e125]
+                - rowgroup
+            - text:  
+        - text:     +  
+  - text:  

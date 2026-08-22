@@ -4,167 +4,127 @@ import (
 	"fmt"
 	"net"
 	"sync"
-	"time"
+
+	"gorm.io/gorm"
+	"mayfly/internal/model"
 )
 
-// Listener 监听端口实例
-type Listener struct {
-	ID        string    `json:"id"`
-	Port      int       `json:"port"`
-	Protocol  string    `json:"protocol"` // tcp / udp
-	Status    string    `json:"status"`   // listening / stopped / error
-	CreatedAt time.Time `json:"created_at"`
-	ln        net.Listener
-	stop      chan struct{}
-	output    string
-	mu        sync.Mutex
-}
-
-// ListenerManager 管理所有监听端口
+// ListenerManager 监听器管理器
 type ListenerManager struct {
 	mu        sync.RWMutex
-	listeners map[string]*Listener
+	listeners map[uint]*listenerEntry
 }
 
-// NewListenerManager 创建监听管理器
-func NewListenerManager() *ListenerManager {
-	return &ListenerManager{listeners: make(map[string]*Listener)}
+type listenerEntry struct {
+	model     *model.Listener
+	tcpListener net.Listener
+	clients   map[string]net.Conn
 }
 
-// StartListener 启动一个监听端口
-func (m *ListenerManager) StartListener(id string, port int, protocol string) error {
+var (
+	listenerMgr     *ListenerManager
+	listenerMgrOnce sync.Once
+)
+
+// GetListenerManager 获取全局监听器管理器
+func GetListenerManager() *ListenerManager {
+	listenerMgrOnce.Do(func() {
+		listenerMgr = &ListenerManager{
+			listeners: make(map[uint]*listenerEntry),
+		}
+	})
+	return listenerMgr
+}
+
+// ListListeners 查询监听器列表
+func ListListeners(db *gorm.DB) ([]model.Listener, error) {
+	var listeners []model.Listener
+	err := db.Order("id DESC").Find(&listeners).Error
+	// 同步运行状态
+	mgr := GetListenerManager()
+	for i := range listeners {
+		if _, ok := mgr.listeners[listeners[i].ID]; ok {
+			listeners[i].Status = "running"
+		} else {
+			listeners[i].Status = "stopped"
+		}
+	}
+	return listeners, err
+}
+
+// CreateListener 创建监听器记录
+func CreateListener(db *gorm.DB, l *model.Listener) error {
+	return db.Create(l).Error
+}
+
+// StartListener 启动监听器
+func (m *ListenerManager) StartListener(db *gorm.DB, id uint) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if old, ok := m.listeners[id]; ok && old.Status == "listening" {
-		return fmt.Errorf("监听 %s 已在运行", id)
+	if _, ok := m.listeners[id]; ok {
+		return fmt.Errorf("监听器已在运行")
 	}
 
-	ln, err := net.Listen("tcp", fmt.Sprintf(":%d", port))
+	var l model.Listener
+	if err := db.First(&l, id).Error; err != nil {
+		return err
+	}
+
+	addr := fmt.Sprintf("%s:%d", l.Host, l.Port)
+	ln, err := net.Listen("tcp", addr)
 	if err != nil {
-		return fmt.Errorf("监听端口 %d 失败: %v", port, err)
+		return fmt.Errorf("监听失败: %w", err)
 	}
 
-	l := &Listener{
-		ID:        id,
-		Port:      port,
-		Protocol:  protocol,
-		Status:    "listening",
-		CreatedAt: time.Now(),
-		ln:        ln,
-		stop:      make(chan struct{}),
+	entry := &listenerEntry{
+		model:     &l,
+		tcpListener: ln,
+		clients:   make(map[string]net.Conn),
 	}
+	m.listeners[id] = entry
 
-	m.listeners[id] = l
-
+	// 接受连接的 goroutine
 	go func() {
 		for {
 			conn, err := ln.Accept()
 			if err != nil {
-				select {
-				case <-l.stop:
-					return
-				default:
-					l.mu.Lock()
-					l.output += fmt.Sprintf("[!] Accept error: %v\n", err)
-					l.mu.Unlock()
-					return
-				}
+				return
 			}
-			go l.handleConn(conn)
+			addr := conn.RemoteAddr().String()
+			entry.clients[addr] = conn
+			// 更新连接数
+			db.Exec("UPDATE listeners SET connections = connections + 1 WHERE id = ?", id)
 		}
 	}()
 
 	return nil
 }
 
-func (l *Listener) handleConn(conn net.Conn) {
-	defer conn.Close()
-	addr := conn.RemoteAddr().String()
-	l.mu.Lock()
-	l.output += fmt.Sprintf("[+] %s - New connection from %s\n", time.Now().Format("15:04:05"), addr)
-	l.mu.Unlock()
-
-	buf := make([]byte, 4096)
-	for {
-		conn.SetReadDeadline(time.Now().Add(5 * time.Minute))
-		n, err := conn.Read(buf)
-		if n > 0 {
-			l.mu.Lock()
-			l.output += string(buf[:n])
-			l.mu.Unlock()
-		}
-		if err != nil {
-			l.mu.Lock()
-			l.output += fmt.Sprintf("\n[-] %s - Connection %s closed\n", time.Now().Format("15:04:05"), addr)
-			l.mu.Unlock()
-			return
-		}
-	}
-}
-
-// StopListener 停止监听
-func (m *ListenerManager) StopListener(id string) error {
+// StopListener 停止监听器
+func (m *ListenerManager) StopListener(db *gorm.DB, id uint) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	l, ok := m.listeners[id]
+	entry, ok := m.listeners[id]
 	if !ok {
-		return fmt.Errorf("监听 %s 不存在", id)
+		return fmt.Errorf("监听器未运行")
 	}
-	if l.Status == "stopped" {
-		return nil
-	}
-	close(l.stop)
-	l.ln.Close()
-	l.Status = "stopped"
-	return nil
-}
 
-// GetListener 获取监听信息
-func (m *ListenerManager) GetListener(id string) (*Listener, bool) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	l, ok := m.listeners[id]
-	return l, ok
-}
-
-// GetOutput 获取监听输出
-func (m *ListenerManager) GetOutput(id string) (string, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	l, ok := m.listeners[id]
-	if !ok {
-		return "", fmt.Errorf("监听 %s 不存在", id)
+	if entry.tcpListener != nil {
+		entry.tcpListener.Close()
 	}
-	l.mu.Lock()
-	defer l.mu.Unlock()
-	return l.output, nil
-}
-
-// ListListeners 列出所有监听
-func (m *ListenerManager) ListListeners() []*Listener {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-	list := make([]*Listener, 0, len(m.listeners))
-	for _, l := range m.listeners {
-		list = append(list, l)
-	}
-	return list
-}
-
-// DeleteListener 删除监听
-func (m *ListenerManager) DeleteListener(id string) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	l, ok := m.listeners[id]
-	if !ok {
-		return fmt.Errorf("监听 %s 不存在", id)
-	}
-	if l.Status == "listening" {
-		close(l.stop)
-		l.ln.Close()
+	for _, conn := range entry.clients {
+		conn.Close()
 	}
 	delete(m.listeners, id)
+
 	return nil
+}
+
+// DeleteListener 删除监听器
+func DeleteListener(db *gorm.DB, id uint) error {
+	mgr := GetListenerManager()
+	_ = mgr.StopListener(db, id)
+	return db.Delete(&model.Listener{}, id).Error
 }

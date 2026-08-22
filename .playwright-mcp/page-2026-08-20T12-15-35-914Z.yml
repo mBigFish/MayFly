@@ -1,0 +1,106 @@
+- generic [active] [ref=f6e1]:
+  - generic [ref=f6e2]:
+    - complementary [ref=f6e3]:
+      - generic [ref=f6e4]:
+        - generic [ref=f6e5]: 
+        - generic [ref=f6e7]: Mayfly
+      - navigation [ref=f6e8]:
+        - generic [ref=f6e9] [cursor=pointer]:
+          - generic [ref=f6e10]: 
+          - generic [ref=f6e11]: 文件管理
+        - generic [ref=f6e12] [cursor=pointer]:
+          - generic [ref=f6e13]: 
+          - generic [ref=f6e14]: 命令执行
+        - generic [ref=f6e15] [cursor=pointer]:
+          - generic [ref=f6e16]: 
+          - generic [ref=f6e17]: 交互终端
+        - generic [ref=f6e18] [cursor=pointer]:
+          - generic [ref=f6e19]: 
+          - generic [ref=f6e20]: 数据库
+    - main [ref=f6e21]:
+      - generic [ref=f6e22]:
+        - generic [ref=f6e24]:
+          - text: 节点列表 /
+          - generic [ref=f6e25]: 未选择节点
+        - generic [ref=f6e26]:
+          - button "+ 添加节点" [ref=f6e27] [cursor=pointer]:
+            - generic [ref=f6e28]: +
+            - text: 添加节点
+          - button " 连接测试" [ref=f6e29] [cursor=pointer]:
+            - generic [ref=f6e30]: 
+            - text: 连接测试
+          - button " 删除" [ref=f6e31] [cursor=pointer]:
+            - generic [ref=f6e32]: 
+            - text: 删除
+          - generic [ref=f6e33] [cursor=pointer]:
+            - generic [ref=f6e34]: 
+            - generic [ref=f6e35]: admin
+          - button " 退出" [ref=f6e36] [cursor=pointer]:
+            - generic [ref=f6e37]: 
+            - text: 退出
+      - generic [ref=f6e38]:
+        - generic [ref=f6e39]:
+          - generic [ref=f6e40]:
+            - generic [ref=f6e41]: 
+            - generic [ref=f6e43]:
+              - heading "节点总数" [level=3] [ref=f6e44]
+              - generic [ref=f6e45]: "0"
+          - generic [ref=f6e46]:
+            - generic [ref=f6e47]: 
+            - generic [ref=f6e49]:
+              - heading "已连接" [level=3] [ref=f6e50]
+              - generic [ref=f6e51]: "0"
+          - generic [ref=f6e52]:
+            - generic [ref=f6e53]: 
+            - generic [ref=f6e55]:
+              - heading "PHP 节点" [level=3] [ref=f6e56]
+              - generic [ref=f6e57]: "0"
+          - generic [ref=f6e58]:
+            - generic [ref=f6e59]: 
+            - generic [ref=f6e61]:
+              - heading "JSP/ASP 节点" [level=3] [ref=f6e62]
+              - generic [ref=f6e63]: "0"
+        - generic [ref=f6e64]:
+          - generic [ref=f6e65]:
+            - generic [ref=f6e66]:
+              - heading " 节点列表" [level=3] [ref=f6e67]:
+                - generic [ref=f6e68]: 
+                - text: 节点列表
+              - generic [ref=f6e69]:
+                - generic [ref=f6e70]: 
+                - textbox "搜索节点..." [ref=f6e71]
+            - generic [ref=f6e74]:
+              - generic [ref=f6e75]: 
+              - paragraph [ref=f6e76]: 暂无节点，点击右上角添加
+          - generic [ref=f6e77]:
+            - heading " 功能面板" [level=3] [ref=f6e79]:
+              - generic [ref=f6e80]: 
+              - text: 功能面板
+            - generic [ref=f6e81]:
+              - generic [ref=f6e82]:
+                - generic [ref=f6e83]:
+                  - textbox "当前路径" [ref=f6e84]
+                  - button " 刷新" [ref=f6e85] [cursor=pointer]:
+                    - generic [ref=f6e86]: 
+                    - text: 刷新
+                  - button " 上级" [ref=f6e87] [cursor=pointer]:
+                    - generic [ref=f6e88]: 
+                    - text: 上级
+                  - button " 新建目录" [ref=f6e89] [cursor=pointer]:
+                    - generic [ref=f6e90]: 
+                    - text: 新建目录
+                  - generic [ref=f6e91] [cursor=pointer]:
+                    - generic [ref=f6e92]: 
+                    - text: 上传
+                - table [ref=f6e93]:
+                  - rowgroup [ref=f6e94]:
+                    - row [ref=f6e95]:
+                      - columnheader "名称" [ref=f6e96]
+                      - columnheader "类型" [ref=f6e97]
+                      - columnheader "大小" [ref=f6e98]
+                      - columnheader "修改时间" [ref=f6e99]
+                      - columnheader "操作" [ref=f6e100]
+                  - rowgroup
+              - text:  
+        - text:    
+  - text:  

@@ -1,0 +1,184 @@
+- generic [active] [ref=f24e1]:
+  - generic [ref=f24e2]:
+    - complementary [ref=f24e3]:
+      - generic [ref=f24e4]:
+        - generic [ref=f24e5]: 
+        - generic [ref=f24e7]: Mayfly
+      - navigation [ref=f24e8]:
+        - generic [ref=f24e9] [cursor=pointer]:
+          - generic [ref=f24e10]: 
+          - generic [ref=f24e11]: 连接列表
+        - generic [ref=f24e12] [cursor=pointer]:
+          - generic [ref=f24e13]: 
+          - generic [ref=f24e14]: 文件管理
+        - generic [ref=f24e15] [cursor=pointer]:
+          - generic [ref=f24e16]: 
+          - generic [ref=f24e17]: 命令执行
+        - generic [ref=f24e18] [cursor=pointer]:
+          - generic [ref=f24e19]: 
+          - generic [ref=f24e20]: 交互终端
+        - generic [ref=f24e21] [cursor=pointer]:
+          - generic [ref=f24e22]: 
+          - generic [ref=f24e23]: 数据库
+        - generic [ref=f24e24] [cursor=pointer]:
+          - generic [ref=f24e25]: 
+          - generic [ref=f24e26]: 反弹Shell
+        - generic [ref=f24e27] [cursor=pointer]:
+          - generic [ref=f24e28]: 
+          - generic [ref=f24e29]: 资源管理
+      - generic [ref=f24e30]:
+        - generic [ref=f24e31]:
+          - generic [ref=f24e33]: 节点
+          - generic [ref=f24e34]: "5"
+        - generic [ref=f24e35]:
+          - generic [ref=f24e37]: 已连接
+          - generic [ref=f24e38]: "0"
+        - generic [ref=f24e39]:
+          - generic [ref=f24e41]: PHP
+          - generic [ref=f24e42]: "3"
+        - generic [ref=f24e43]:
+          - generic [ref=f24e45]: 其他
+          - generic [ref=f24e46]: "2"
+    - main [ref=f24e47]:
+      - generic [ref=f24e48]:
+        - generic [ref=f24e50]:
+          - text: 节点列表 /
+          - generic [ref=f24e51]: 未选择节点
+        - generic [ref=f24e52]:
+          - generic [ref=f24e53]:
+            - generic [ref=f24e54]: 
+            - textbox "搜索节点..." [ref=f24e55]
+          - button "" [ref=f24e56] [cursor=pointer]
+          - button "" [ref=f24e60] [cursor=pointer]
+          - generic [ref=f24e62] [cursor=pointer]:
+            - generic [ref=f24e63]: 
+            - generic [ref=f24e65]: admin
+            - generic [ref=f24e66]: 
+      - generic [ref=f24e67]:
+        - text:              
+        - generic [ref=f24e68]:
+          - generic [ref=f24e69]:
+            - button "+ 添加节点" [ref=f24e70] [cursor=pointer]:
+              - generic [ref=f24e71]: +
+              - text: 添加节点
+            - generic [ref=f24e72]:
+              - generic [ref=f24e73]: 
+              - textbox "搜索连接名称或URL..." [ref=f24e74]
+            - generic [ref=f24e75]:
+              - button "全部" [ref=f24e76] [cursor=pointer]
+              - button "已连通" [ref=f24e77] [cursor=pointer]
+              - button "连接失败" [ref=f24e78] [cursor=pointer]
+              - button "未测试" [ref=f24e79] [cursor=pointer]
+            - button " 一键测试全部" [ref=f24e80] [cursor=pointer]:
+              - generic [ref=f24e81]: 
+              - text: 一键测试全部
+          - generic [ref=f24e82]:
+            - generic [ref=f24e83]:
+              - generic [ref=f24e84] [cursor=pointer]:
+                - generic [ref=f24e85]:
+                  - generic [ref=f24e86]: 
+                  - generic [ref=f24e87]: 默认
+                  - generic [ref=f24e88]: "2"
+                - button " 批量测试" [ref=f24e90]:
+                  - generic [ref=f24e91]: 
+                  - text: 批量测试
+              - generic [ref=f24e92]:
+                - generic [ref=f24e93]:
+                  - generic [ref=f24e94]:
+                    - generic [ref=f24e95]: 测试
+                    - generic [ref=f24e96]: PHP
+                  - generic [ref=f24e97]: http://129.151.8.157:8081/shell.php
+                  - generic [ref=f24e98]:
+                    - generic [ref=f24e99]:
+                      - generic [ref=f24e100]: 已连通
+                      - generic [ref=f24e101]:
+                        - generic [ref=f24e102]: 
+                        - text: 08-21 14:40
+                    - generic [ref=f24e103]:
+                      - button "" [ref=f24e104] [cursor=pointer]
+                      - button "" [ref=f24e106] [cursor=pointer]
+                      - button "" [ref=f24e108] [cursor=pointer]
+                - generic [ref=f24e110]:
+                  - generic [ref=f24e111]:
+                    - generic [ref=f24e112]: PHP靶场
+                    - generic [ref=f24e113]: PHP
+                  - generic [ref=f24e114]: http://129.151.8.157:8081/shell.php
+                  - generic [ref=f24e115]:
+                    - generic [ref=f24e116]:
+                      - generic [ref=f24e117]: 已连通
+                      - generic [ref=f24e118]:
+                        - generic [ref=f24e119]: 
+                        - text: 08-21 14:40
+                    - generic [ref=f24e120]:
+                      - button "" [ref=f24e121] [cursor=pointer]
+                      - button "" [ref=f24e123] [cursor=pointer]
+                      - button "" [ref=f24e125] [cursor=pointer]
+            - generic [ref=f24e127]:
+              - generic [ref=f24e128] [cursor=pointer]:
+                - generic [ref=f24e129]:
+                  - generic [ref=f24e130]: 
+                  - generic [ref=f24e131]: 测试环境
+                  - generic [ref=f24e132]: "2"
+                - button " 批量测试" [ref=f24e134]:
+                  - generic [ref=f24e135]: 
+                  - text: 批量测试
+              - generic [ref=f24e136]:
+                - generic [ref=f24e137]:
+                  - generic [ref=f24e138]:
+                    - generic [ref=f24e139]: 测试节点B
+                    - generic [ref=f24e140]: PHP
+                  - generic [ref=f24e141]: http://192.168.1.100/shell.php
+                  - generic [ref=f24e142]:
+                    - generic [ref=f24e143]:
+                      - generic [ref=f24e144]: 连接失败
+                      - generic [ref=f24e145]:
+                        - generic [ref=f24e146]: 
+                        - text: 08-21 14:41
+                    - generic [ref=f24e147]:
+                      - button "" [ref=f24e148] [cursor=pointer]
+                      - button "" [ref=f24e150] [cursor=pointer]
+                      - button "" [ref=f24e152] [cursor=pointer]
+                  - generic [ref=f24e154]: "Post \"http://192.168.1.100/shell.php\": dial tcp 192.168.1.100:80: connectex: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond."
+                - generic [ref=f24e155]:
+                  - generic [ref=f24e156]:
+                    - generic [ref=f24e157]: 测试节点C
+                    - generic [ref=f24e158]: JSP
+                  - generic [ref=f24e159]: http://10.0.0.50/shell.jsp
+                  - generic [ref=f24e160]:
+                    - generic [ref=f24e161]:
+                      - generic [ref=f24e162]: 连接失败
+                      - generic [ref=f24e163]:
+                        - generic [ref=f24e164]: 
+                        - text: 08-21 14:41
+                    - generic [ref=f24e165]:
+                      - button "" [ref=f24e166] [cursor=pointer]
+                      - button "" [ref=f24e168] [cursor=pointer]
+                      - button "" [ref=f24e170] [cursor=pointer]
+                  - generic [ref=f24e172]: "Post \"http://10.0.0.50/shell.jsp\": dial tcp 10.0.0.50:80: connectex: A connection attempt failed because the connected party did not properly respond after a period of time, or established connection failed because connected host has failed to respond."
+            - generic [ref=f24e173]:
+              - generic [ref=f24e174] [cursor=pointer]:
+                - generic [ref=f24e175]:
+                  - generic [ref=f24e176]: 
+                  - generic [ref=f24e177]: 生产环境
+                  - generic [ref=f24e178]: "1"
+                - button " 批量测试" [ref=f24e180]:
+                  - generic [ref=f24e181]: 
+                  - text: 批量测试
+              - generic [ref=f24e183]:
+                - generic [ref=f24e184]:
+                  - generic [ref=f24e185]: 生产服务器
+                  - generic [ref=f24e186]: ASPX
+                - generic [ref=f24e187]: http://prod.example.com/shell.aspx
+                - generic [ref=f24e188]:
+                  - generic [ref=f24e189]:
+                    - generic [ref=f24e190]: 连接失败
+                    - generic [ref=f24e191]:
+                      - generic [ref=f24e192]: 
+                      - text: 08-21 14:41
+                  - generic [ref=f24e193]:
+                    - button "" [ref=f24e194] [cursor=pointer]
+                    - button "" [ref=f24e196] [cursor=pointer]
+                    - button "" [ref=f24e198] [cursor=pointer]
+                - generic [ref=f24e200]: "Post \"http://prod.example.com/shell.aspx\": dial tcp: lookup prod.example.com: no such host"
+        - text: +         
+  - text:   

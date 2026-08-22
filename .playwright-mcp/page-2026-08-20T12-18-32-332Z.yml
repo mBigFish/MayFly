@@ -1,0 +1,88 @@
+- generic [active] [ref=f10e1]:
+  - generic [ref=f10e2]:
+    - complementary [ref=f10e3]:
+      - generic [ref=f10e4]:
+        - generic [ref=f10e5]: 
+        - generic [ref=f10e7]: Mayfly
+      - navigation [ref=f10e8]:
+        - generic [ref=f10e9] [cursor=pointer]:
+          - generic [ref=f10e10]: 
+          - generic [ref=f10e11]: 文件管理
+        - generic [ref=f10e12] [cursor=pointer]:
+          - generic [ref=f10e13]: 
+          - generic [ref=f10e14]: 命令执行
+        - generic [ref=f10e15] [cursor=pointer]:
+          - generic [ref=f10e16]: 
+          - generic [ref=f10e17]: 交互终端
+        - generic [ref=f10e18] [cursor=pointer]:
+          - generic [ref=f10e19]: 
+          - generic [ref=f10e20]: 数据库
+    - main [ref=f10e21]:
+      - generic [ref=f10e22]:
+        - generic [ref=f10e24]:
+          - text: 节点列表 /
+          - generic [ref=f10e25]: 未选择节点
+        - generic [ref=f10e26]:
+          - button "+ 添加节点" [ref=f10e27] [cursor=pointer]:
+            - generic [ref=f10e28]: +
+            - text: 添加节点
+          - button " 连接测试" [ref=f10e29] [cursor=pointer]:
+            - generic [ref=f10e30]: 
+            - text: 连接测试
+          - button " 删除" [ref=f10e31] [cursor=pointer]:
+            - generic [ref=f10e32]: 
+            - text: 删除
+          - generic [ref=f10e33] [cursor=pointer]:
+            - generic [ref=f10e34]: 
+            - generic [ref=f10e35]: admin
+          - button " 退出" [ref=f10e36] [cursor=pointer]:
+            - generic [ref=f10e37]: 
+            - text: 退出
+      - generic [ref=f10e38]:
+        - generic [ref=f10e39]:
+          - generic [ref=f10e40]:
+            - generic [ref=f10e41]: 
+            - generic [ref=f10e43]:
+              - heading "节点总数" [level=3] [ref=f10e44]
+              - generic [ref=f10e45]: "0"
+          - generic [ref=f10e46]:
+            - generic [ref=f10e47]: 
+            - generic [ref=f10e49]:
+              - heading "已连接" [level=3] [ref=f10e50]
+              - generic [ref=f10e51]: "0"
+          - generic [ref=f10e52]:
+            - generic [ref=f10e53]: 
+            - generic [ref=f10e55]:
+              - heading "PHP 节点" [level=3] [ref=f10e56]
+              - generic [ref=f10e57]: "0"
+          - generic [ref=f10e58]:
+            - generic [ref=f10e59]: 
+            - generic [ref=f10e61]:
+              - heading "JSP/ASP 节点" [level=3] [ref=f10e62]
+              - generic [ref=f10e63]: "0"
+        - generic [ref=f10e64]:
+          - generic [ref=f10e65]:
+            - generic [ref=f10e66]:
+              - heading " 节点列表" [level=3] [ref=f10e67]:
+                - generic [ref=f10e68]: 
+                - text: 节点列表
+              - generic [ref=f10e69]:
+                - generic [ref=f10e70]: 
+                - textbox "搜索节点..." [ref=f10e71]
+            - generic [ref=f10e74]:
+              - generic [ref=f10e75]: 
+              - paragraph [ref=f10e76]: 暂无节点，点击右上角添加
+          - generic [ref=f10e77]:
+            - heading " 功能面板" [level=3] [ref=f10e79]:
+              - generic [ref=f10e80]: 
+              - text: 功能面板
+            - generic [ref=f10e81]:      
+        - text:    
+  - text:  
+  - generic [ref=f10e122]:
+    - generic [ref=f10e123]:
+      - generic [ref=f10e124]: 
+      - generic [ref=f10e125]: 请先选择节点
+    - generic [ref=f10e126]:
+      - generic [ref=f10e127]: 
+      - generic [ref=f10e128]: 请先选择节点

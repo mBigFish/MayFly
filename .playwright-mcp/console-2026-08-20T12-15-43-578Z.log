@@ -1,0 +1,4 @@
+[      17ms] TypeError: Cannot read properties of null (reading 'querySelector')
+    at http://localhost:18080/static/js/login.js:13:30
+    at http://localhost:18080/static/js/login.js:54:3
+[      15ms] [VERBOSE] [DOM] Input elements should have autocomplete attributes (suggested: "current-password"): (More info: https://goo.gl/9p2vKq) %o @ http://localhost:18080/login.html:0

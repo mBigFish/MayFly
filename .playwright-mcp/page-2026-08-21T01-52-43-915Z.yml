@@ -1,0 +1,100 @@
+- generic [active] [ref=f8e1]:
+  - generic [ref=f8e2]:
+    - complementary [ref=f8e3]:
+      - generic [ref=f8e4]:
+        - generic [ref=f8e5]: 
+        - generic [ref=f8e7]: Mayfly
+      - navigation [ref=f8e8]:
+        - generic [ref=f8e9] [cursor=pointer]:
+          - generic [ref=f8e10]: 
+          - generic [ref=f8e11]: 文件管理
+        - generic [ref=f8e12] [cursor=pointer]:
+          - generic [ref=f8e13]: 
+          - generic [ref=f8e14]: 命令执行
+        - generic [ref=f8e15] [cursor=pointer]:
+          - generic [ref=f8e16]: 
+          - generic [ref=f8e17]: 交互终端
+        - generic [ref=f8e18] [cursor=pointer]:
+          - generic [ref=f8e19]: 
+          - generic [ref=f8e20]: 数据库
+      - generic [ref=f8e21]:
+        - generic [ref=f8e22]:
+          - generic [ref=f8e24]: 节点
+          - generic [ref=f8e25]: "1"
+        - generic [ref=f8e26]:
+          - generic [ref=f8e28]: 已连接
+          - generic [ref=f8e29]: "0"
+        - generic [ref=f8e30]:
+          - generic [ref=f8e32]: PHP
+          - generic [ref=f8e33]: "1"
+        - generic [ref=f8e34]:
+          - generic [ref=f8e36]: 其他
+          - generic [ref=f8e37]: "0"
+    - main [ref=f8e38]:
+      - generic [ref=f8e39]:
+        - generic [ref=f8e41]:
+          - text: 节点列表 /
+          - generic [ref=f8e42]: 未选择节点
+        - generic [ref=f8e43]:
+          - generic [ref=f8e44]:
+            - generic [ref=f8e45]: 
+            - textbox "搜索节点..." [ref=f8e46]
+          - button "" [ref=f8e47] [cursor=pointer]
+          - button "" [ref=f8e50] [cursor=pointer]
+          - generic [ref=f8e52] [cursor=pointer]:
+            - generic [ref=f8e53]: 
+            - generic [ref=f8e55]: admin
+            - generic [ref=f8e56]: 
+      - generic [ref=f8e57]:
+        - generic [ref=f8e58]:
+          - generic [ref=f8e59]:
+            - generic [ref=f8e60]:
+              - heading " 节点列表" [level=3] [ref=f8e61]:
+                - generic [ref=f8e62]: 
+                - text: 节点列表
+              - generic [ref=f8e63]:
+                - button "+ 添加" [ref=f8e64] [cursor=pointer]:
+                  - generic [ref=f8e65]: +
+                  - text: 添加
+                - button " 测试" [ref=f8e66] [cursor=pointer]:
+                  - generic [ref=f8e67]: 
+                  - text: 测试
+                - button " 删除" [ref=f8e68] [cursor=pointer]:
+                  - generic [ref=f8e69]: 
+                  - text: 删除
+            - generic [ref=f8e71]:
+              - generic [ref=f8e72]: 
+              - textbox "搜索节点..." [ref=f8e73]
+            - generic [ref=f8e76] [cursor=pointer]:
+              - generic [ref=f8e77]: PHP
+              - generic [ref=f8e78]:
+                - generic [ref=f8e79]: 测试
+                - generic [ref=f8e80]: http://129.151.8.157:8081/shell.php
+          - generic [ref=f8e82]:
+            - generic [ref=f8e83]:
+              - generic [ref=f8e84]:
+                - textbox "当前路径" [ref=f8e85]
+                - button " 刷新" [ref=f8e86] [cursor=pointer]:
+                  - generic [ref=f8e87]: 
+                  - text: 刷新
+                - button " 上级" [ref=f8e88] [cursor=pointer]:
+                  - generic [ref=f8e89]: 
+                  - text: 上级
+                - button " 新建目录" [ref=f8e90] [cursor=pointer]:
+                  - generic [ref=f8e91]: 
+                  - text: 新建目录
+                - generic [ref=f8e92] [cursor=pointer]:
+                  - generic [ref=f8e93]: 
+                  - text: 上传
+              - table [ref=f8e94]:
+                - rowgroup [ref=f8e95]:
+                  - row [ref=f8e96]:
+                    - columnheader "名称" [ref=f8e97]
+                    - columnheader "类型" [ref=f8e98]
+                    - columnheader "大小" [ref=f8e99]
+                    - columnheader "修改时间" [ref=f8e100]
+                    - columnheader "操作" [ref=f8e101]
+                - rowgroup
+            - text:  
+        - text:    
+  - text:  

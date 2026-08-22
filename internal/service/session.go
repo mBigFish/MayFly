@@ -1,82 +1,52 @@
 package service
 
 import (
-	"crypto/rand"
-	"encoding/hex"
-	"fmt"
-	"sync"
 	"time"
 
+	"gorm.io/gorm"
 	"mayfly/internal/model"
 )
 
-// SessionService 会话服务
-type SessionService struct {
-	manager    *model.SessionManager
-	ptySessions sync.Map // map[string]Terminal
+// CreateSession 创建会话
+func CreateSession(db *gorm.DB, s *model.Session) error {
+	return db.Create(s).Error
 }
 
-// NewSessionService 创建会话服务
-func NewSessionService() *SessionService {
-	return &SessionService{
-		manager: model.NewSessionManager(),
+// GetSessionByID 按 ID 查询会话
+func GetSessionByID(db *gorm.DB, id uint) (*model.Session, error) {
+	var s model.Session
+	if err := db.First(&s, id).Error; err != nil {
+		return nil, err
 	}
+	return &s, nil
 }
 
-// CreateSession 创建一个新的终端会话
-func (ss *SessionService) CreateSession(name string) (*model.Session, error) {
-	id := generateID()
-	if name == "" {
-		name = fmt.Sprintf("Terminal %s", id[:8])
+// ListSessions 查询会话列表
+func ListSessions(db *gorm.DB, userID uint, sessionType string) ([]model.Session, error) {
+	var sessions []model.Session
+	q := db.Model(&model.Session{})
+	if userID > 0 {
+		q = q.Where("user_id = ?", userID)
 	}
-
-	session := &model.Session{
-		ID:        id,
-		Name:      name,
-		CreatedAt: time.Now(),
-		Active:    true,
+	if sessionType != "" {
+		q = q.Where("type = ?", sessionType)
 	}
-
-	ss.manager.Add(session)
-	return session, nil
+	err := q.Order("id DESC").Find(&sessions).Error
+	return sessions, err
 }
 
-// GetSession 获取会话
-func (ss *SessionService) GetSession(id string) (*model.Session, bool) {
-	return ss.manager.Get(id)
+// UpdateSessionActive 更新会话活跃时间
+func UpdateSessionActive(db *gorm.DB, id uint) error {
+	now := time.Now()
+	return db.Exec("UPDATE sessions SET last_active = ?, status = 'active' WHERE id = ?", now, id).Error
 }
 
-// ListSessions 列出所有会话
-func (ss *SessionService) ListSessions() []*model.Session {
-	return ss.manager.List()
+// CloseSession 关闭会话
+func CloseSession(db *gorm.DB, id uint) error {
+	return db.Exec("UPDATE sessions SET status = 'closed' WHERE id = ?", id).Error
 }
 
-// RemoveSession 删除会话
-func (ss *SessionService) RemoveSession(id string) {
-	ss.manager.Remove(id)
-	if pty, ok := ss.ptySessions.Load(id); ok {
-		pty.(Terminal).Close()
-		ss.ptySessions.Delete(id)
-	}
-}
-
-// StorePTY 存储会话对应的终端
-func (ss *SessionService) StorePTY(sessionID string, t Terminal) {
-	ss.ptySessions.Store(sessionID, t)
-}
-
-// GetPTY 获取会话对应的终端
-func (ss *SessionService) GetPTY(sessionID string) (Terminal, bool) {
-	v, ok := ss.ptySessions.Load(sessionID)
-	if !ok {
-		return nil, false
-	}
-	return v.(Terminal), true
-}
-
-// generateID 生成随机会话 ID
-func generateID() string {
-	b := make([]byte, 16)
-	rand.Read(b)
-	return hex.EncodeToString(b)
+// DeleteSession 删除会话
+func DeleteSession(db *gorm.DB, id uint) error {
+	return db.Delete(&model.Session{}, id).Error
 }

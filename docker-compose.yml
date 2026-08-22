@@ -1,0 +1,17 @@
+version: "3.8"
+
+services:
+  mayfly:
+    build: .
+    container_name: mayfly
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./logs:/app/logs
+      - ./payloads:/app/payloads
+      - ./configs/config.yaml:/app/configs/config.yaml
+    environment:
+      - TZ=Asia/Shanghai
+      - GIN_MODE=release
+    restart: unless-stopped

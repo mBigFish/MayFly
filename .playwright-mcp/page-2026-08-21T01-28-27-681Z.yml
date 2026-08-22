@@ -1,0 +1,22 @@
+- generic [ref=f6e2]:
+  - generic [ref=f6e4]:
+    - generic [ref=f6e5]: 
+    - heading "Mayfly" [level=1] [ref=f6e7]
+    - paragraph [ref=f6e8]: WebShell 连接管理工具
+  - generic [ref=f6e10]:
+    - heading "登录" [level=2] [ref=f6e12]
+    - generic [ref=f6e13]:
+      - generic [ref=f6e14]:
+        - generic [ref=f6e15]: 用户名
+        - textbox "用户名" [ref=f6e16]:
+          - /placeholder: 请输入用户名
+      - generic [ref=f6e17]:
+        - generic [ref=f6e18]: 密码
+        - generic [ref=f6e19]:
+          - textbox "密码" [ref=f6e20]:
+            - /placeholder: 请输入密码
+          - button "" [ref=f6e21] [cursor=pointer]
+      - generic [ref=f6e24] [cursor=pointer]:
+        - checkbox "记住我"
+        - text: 记住我
+      - button "登录" [ref=f6e26] [cursor=pointer]

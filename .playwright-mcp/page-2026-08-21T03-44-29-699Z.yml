@@ -1,0 +1,109 @@
+- generic [ref=f31e1]:
+  - generic [ref=f31e2]:
+    - complementary [ref=f31e3]:
+      - generic [ref=f31e4]:
+        - generic [ref=f31e5]: 
+        - generic [ref=f31e7]: Mayfly
+      - navigation [ref=f31e8]:
+        - generic [ref=f31e9] [cursor=pointer]:
+          - generic [ref=f31e10]: 
+          - generic [ref=f31e11]: 连接列表
+        - generic [ref=f31e13] [cursor=pointer]:
+          - generic [ref=f31e14]: 
+          - generic [ref=f31e15]: 文件管理
+        - generic [ref=f31e16] [cursor=pointer]:
+          - generic [ref=f31e17]: 
+          - generic [ref=f31e18]: 命令执行
+        - generic [ref=f31e19] [cursor=pointer]:
+          - generic [ref=f31e20]: 
+          - generic [ref=f31e21]: 交互终端
+        - generic [ref=f31e22] [cursor=pointer]:
+          - generic [ref=f31e23]: 
+          - generic [ref=f31e24]: 数据库
+        - generic [ref=f31e26] [cursor=pointer]:
+          - generic [ref=f31e27]: 
+          - generic [ref=f31e28]: 反弹Shell
+        - generic [ref=f31e30] [cursor=pointer]:
+          - generic [ref=f31e31]: 
+          - generic [ref=f31e32]: 资源管理
+      - generic [ref=f31e33]:
+        - generic [ref=f31e34]:
+          - generic [ref=f31e36]: 节点
+          - generic [ref=f31e37]: "5"
+        - generic [ref=f31e38]:
+          - generic [ref=f31e40]: 已连接
+          - generic [ref=f31e41]: "0"
+        - generic [ref=f31e42]:
+          - generic [ref=f31e44]: PHP
+          - generic [ref=f31e45]: "3"
+        - generic [ref=f31e46]:
+          - generic [ref=f31e48]: 其他
+          - generic [ref=f31e49]: "2"
+    - main [ref=f31e50]:
+      - generic [ref=f31e51]:
+        - generic [ref=f31e53]:
+          - text: 节点列表 /
+          - generic [ref=f31e54]: 资源管理
+        - generic [ref=f31e55]:
+          - generic [ref=f31e56]:
+            - generic [ref=f31e57]: 
+            - textbox "搜索节点..." [ref=f31e58]
+          - button "" [ref=f31e59] [cursor=pointer]
+          - button "" [ref=f31e62] [cursor=pointer]
+          - generic [ref=f31e64] [cursor=pointer]:
+            - generic [ref=f31e65]: 
+            - generic [ref=f31e67]: admin
+            - generic [ref=f31e68]: 
+      - generic [ref=f31e69]:                +                       
+      - generic [ref=f31e185]:
+        - generic [ref=f31e186]:
+          - button "+ 添加服务器" [active] [ref=f31e187] [cursor=pointer]:
+            - generic [ref=f31e188]: +
+            - text: 添加服务器
+          - generic [ref=f31e189]:
+            - generic [ref=f31e190]: 
+            - textbox "搜索名称、IP或分组..." [ref=f31e191]
+          - button "全部" [ref=f31e193] [cursor=pointer]
+          - button " 一键测试" [ref=f31e194] [cursor=pointer]:
+            - generic [ref=f31e195]: 
+            - text: 一键测试
+        - generic [ref=f31e197]:
+          - generic [ref=f31e198]: 
+          - paragraph [ref=f31e199]: 暂无服务器，点击「添加服务器」开始管理
+      - text:       
+  - text: 
+  - generic [ref=f31e201]:
+    - generic [ref=f31e202]:
+      - heading "添加服务器" [level=3] [ref=f31e203]
+      - button "" [ref=f31e204] [cursor=pointer]
+    - generic [ref=f31e206]:
+      - generic [ref=f31e207]:
+        - generic [ref=f31e208]: 服务器名称
+        - textbox "例如：Web服务器01" [ref=f31e209]
+      - generic [ref=f31e210]:
+        - generic [ref=f31e211]: 分组
+        - textbox "留空为默认分组" [ref=f31e212]
+      - generic [ref=f31e213]:
+        - generic [ref=f31e214]:
+          - generic [ref=f31e215]: IP 地址
+          - textbox "192.168.1.100" [ref=f31e216]
+        - generic [ref=f31e217]:
+          - generic [ref=f31e218]: SSH 端口
+          - spinbutton "22" [ref=f31e219]
+      - generic [ref=f31e220]:
+        - generic [ref=f31e221]: SSH 用户名
+        - textbox "root" [ref=f31e222]
+      - generic [ref=f31e223]:
+        - generic [ref=f31e224]: SSH 密码
+        - textbox "密码（可选，如使用私钥可留空）" [ref=f31e225]
+      - generic [ref=f31e226]:
+        - generic [ref=f31e227]: SSH 私钥
+        - textbox "-----BEGIN OPENSSH PRIVATE KEY----- （可选，留空则使用密码认证） -----END OPENSSH PRIVATE KEY-----" [ref=f31e228]:
+          - /placeholder: "-----BEGIN OPENSSH PRIVATE KEY-----\n（可选，留空则使用密码认证）\n-----END OPENSSH PRIVATE KEY-----"
+      - generic [ref=f31e229]:
+        - generic [ref=f31e230]: 描述
+        - textbox "备注信息" [ref=f31e231]
+    - generic [ref=f31e232]:
+      - button "取消" [ref=f31e233] [cursor=pointer]
+      - button "保存" [ref=f31e234] [cursor=pointer]
+  - text: 
