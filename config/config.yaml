@@ -1,0 +1,18 @@
+# Mayfly WebShell 管理器配置
+# 配置优先级：环境变量 > 本文件 > 默认值
+# 即：如果设置了对应的环境变量（如 MAYFLY_PORT），会覆盖本文件的值。
+
+# 服务器监听端口
+server_port: "8080"
+
+# 认证配置
+username: "admin"
+password: "mayfly123"
+# JWT 签名密钥（生产环境务必修改为随机长字符串）
+jwt_secret: "mayfly-secret-key-change-in-production"
+
+# 默认终端 shell（Windows 为 powershell.exe，Linux/macOS 为 bash）
+shell: ""
+
+# 会话超时（分钟）
+session_timeout: 30
