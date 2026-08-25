@@ -1,2 +1,4 @@
 .playwright-mcp/
 *.exe
+data/*
+!data/.gitkeep
