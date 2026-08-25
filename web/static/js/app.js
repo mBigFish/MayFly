@@ -1796,11 +1796,11 @@ const THEME_NAMES = { glass: '系统默认效果', frosted: '白天玻璃效果'
 
 function currentTheme() {
     const t = localStorage.getItem(THEME_KEY);
-    return (t === 'frosted' || t === 'glass' || t === 'dark') ? t : 'frosted';
+    return (t === 'frosted' || t === 'glass' || t === 'dark') ? t : 'glass';
 }
 
 function getTerminalTheme() {
-    const theme = document.documentElement.getAttribute('data-theme') || 'frosted';
+    const theme = document.documentElement.getAttribute('data-theme') || 'glass';
     if (theme === 'dark') {
         return {
             background: '#0d1117', foreground: '#e6edf3', cursor: '#e6edf3',

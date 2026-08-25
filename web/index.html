@@ -8,7 +8,7 @@
         (function () {
             try {
                 var t = localStorage.getItem('mayfly_theme');
-                if (t !== 'frosted' && t !== 'glass' && t !== 'dark') t = 'frosted';
+                if (t !== 'frosted' && t !== 'glass' && t !== 'dark') t = 'glass';
                 document.documentElement.setAttribute('data-theme', t);
             } catch (e) {}
         })();
