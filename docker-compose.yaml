@@ -1,0 +1,18 @@
+version: "3.8"
+
+services:
+  mayfly:
+    build: .
+    container_name: mayfly
+    restart: unless-stopped
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data:/app/data
+      - ./config/config.yaml:/app/config/config.yaml:ro
+    environment:
+      # 可通过环境变量覆盖配置文件中的值
+      # - MAYFLY_PORT=8080
+      # - MAYFLY_USER=admin
+      # - MAYFLY_PASS=your_password
+      - GIN_MODE=release

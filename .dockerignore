@@ -1,0 +1,7 @@
+data/
+.git/
+.gitignore
+*.md
+*.png
+*.exe
+start.bat
