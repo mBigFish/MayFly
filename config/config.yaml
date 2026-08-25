@@ -9,7 +9,7 @@ server_port: "8080"
 username: "admin"
 password: "mayfly123"
 # JWT 签名密钥（生产环境务必修改为随机长字符串）
-jwt_secret: "mayfly-secret-key-change-in-production"
+jwt_secret: "kX7#mP$2qLnV9@wR5tBjY8&fHdZ3cA0s"
 
 # 默认终端 shell（Windows 为 powershell.exe，Linux/macOS 为 bash）
 shell: ""

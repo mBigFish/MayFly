@@ -276,7 +276,7 @@ function selectNode(node) {
 function updatePanelsForNode() {
     if (state.currentTab === 'file') loadFiles('');
     else if (state.currentTab === 'cmd') loadCmdHistory();
-    else if (state.currentTab === 'terminal') ensureTerminal();
+    // terminal 由 switchTab 的 setTimeout 统一调用 ensureTerminal()，避免重复弹 toast
     else if (state.currentTab === 'db') {
         document.getElementById('dbResultTable').style.display = 'none';
         document.getElementById('dbResultMsg').textContent = '';
@@ -1792,7 +1792,7 @@ function bindEvents() {
 
 // ===== 主题切换 =====
 const THEME_KEY = 'mayfly_theme';
-const THEME_NAMES = { frosted: '毛玻璃效果', glass: '玻璃效果', dark: '黑夜效果' };
+const THEME_NAMES = { glass: '系统默认效果', frosted: '白天玻璃效果', dark: '黑夜玻璃效果' };
 
 function currentTheme() {
     const t = localStorage.getItem(THEME_KEY);
