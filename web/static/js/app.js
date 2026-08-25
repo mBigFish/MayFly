@@ -828,6 +828,22 @@ async function loadSystemInfo() {
             '<tr><td>GC 次数</td><td>' + d.gc_count + '</td></tr>' +
             '<tr><td>审计日志</td><td>' + d.audit_count + ' 条</td></tr>' +
             '</table>' + fileHtml;
+
+        // 数据管理 - 数据文件列表
+        const dataFilesEl = document.getElementById('sysDataFiles');
+        if (dataFilesEl) {
+            if (fileNames.length > 0) {
+                dataFilesEl.innerHTML = '<div class="sys-data-files-list">' + fileNames.map((f) =>
+                    '<div class="sys-data-file-item">' +
+                        '<span class="sys-data-file-icon"><i class="fas fa-file-alt"></i></span>' +
+                        '<span class="sys-data-file-name">' + escapeHtml(f) + '</span>' +
+                        '<span class="sys-data-file-size">' + formatFileSize(files[f]) + '</span>' +
+                    '</div>'
+                ).join('') + '</div>';
+            } else {
+                dataFilesEl.innerHTML = '<div style="font-size:12px;color:var(--text-muted);padding:8px 0;">暂无数据文件</div>';
+            }
+        }
     } catch (e) {
         console.error('loadSystemInfo error:', e);
     }
