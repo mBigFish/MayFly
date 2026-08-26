@@ -30,6 +30,14 @@ type Claims struct {
 
 // Login 处理登录请求
 func Login(c *gin.Context) {
+	ip := c.ClientIP()
+
+	// 防爆破：IP 已被锁定时直接拒绝
+	if limiter.isLocked(ip) {
+		c.JSON(http.StatusTooManyRequests, gin.H{"error": "尝试次数过多，请稍后再试"})
+		return
+	}
+
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数无效"})
@@ -38,9 +46,15 @@ func Login(c *gin.Context) {
 
 	cfg := config.Get()
 	if req.Username != cfg.Username || req.Password != cfg.Password {
+		// 失败延迟，减缓爆破速度
+		time.Sleep(loginFailDelay)
+		limiter.recordFailure(ip)
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})
 		return
 	}
+
+	// 登录成功，清除该 IP 的失败记录
+	limiter.reset(ip)
 
 	// 生成 JWT
 	claims := &Claims{

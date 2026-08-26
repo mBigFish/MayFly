@@ -10,6 +10,10 @@
                 var t = localStorage.getItem('mayfly_theme');
                 if (t !== 'frosted' && t !== 'glass' && t !== 'dark') t = 'glass';
                 document.documentElement.setAttribute('data-theme', t);
+                // 未登录时在页面渲染前直接跳转到登录页，避免控制台界面闪现
+                if (!localStorage.getItem('mayfly_token')) {
+                    window.location.replace('/login');
+                }
             } catch (e) {}
         })();
     </script>
