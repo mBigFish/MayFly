@@ -810,15 +810,6 @@ async function loadSystemInfo() {
         // 数据文件
         const files = d.data_files || {};
         const fileNames = Object.keys(files);
-        let fileHtml = '';
-        if (fileNames.length > 0) {
-            fileHtml = '<div class="sys-file-list">' + fileNames.map((f) =>
-                '<div class="sys-file-item">' +
-                    '<span class="sys-file-name">' + escapeHtml(f) + '</span>' +
-                    '<span class="sys-file-size">' + formatFileSize(files[f]) + '</span>' +
-                '</div>'
-            ).join('') + '</div>';
-        }
 
         document.getElementById('sysRuntimeBody').innerHTML =
             '<table class="sys-info-table">' +
@@ -827,7 +818,7 @@ async function loadSystemInfo() {
             '<tr><td>累计分配</td><td>' + d.mem_total + ' MB</td></tr>' +
             '<tr><td>GC 次数</td><td>' + d.gc_count + '</td></tr>' +
             '<tr><td>审计日志</td><td>' + d.audit_count + ' 条</td></tr>' +
-            '</table>' + fileHtml;
+            '</table>';
 
         // 数据管理 - 数据文件列表
         const dataFilesEl = document.getElementById('sysDataFiles');
