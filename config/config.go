@@ -1,6 +1,7 @@
 package config
 
 import (
+	"fmt"
 	"os"
 	"runtime"
 	"strconv"
@@ -101,6 +102,27 @@ func Get() *Config {
 		Init()
 	}
 	return cfg
+}
+
+// Save 将当前配置写回 config.yaml 文件，使运行时修改持久化到配置文件。
+func Save() error {
+	if cfg == nil {
+		return fmt.Errorf("config not initialized")
+	}
+	content := "# Mayfly WebShell 管理器配置\n"
+	content += "# 配置优先级：环境变量 > 本文件 > 默认值\n"
+	content += "# 即：如果设置了对应的环境变量（如 MAYFLY_PORT），会覆盖本文件的值。\n\n"
+	content += fmt.Sprintf("# 服务器监听端口\nserver_port: %q\n\n", cfg.ServerPort)
+	content += "# 认证配置\n"
+	content += fmt.Sprintf("username: %q\n", cfg.Username)
+	content += fmt.Sprintf("password: %q\n", cfg.Password)
+	content += "# JWT 签名密钥（生产环境务必修改为随机长字符串）\n"
+	content += fmt.Sprintf("jwt_secret: %q\n\n", cfg.JWTSecret)
+	content += "# 默认终端 shell（Windows 为 powershell.exe，Linux/macOS 为 bash）\n"
+	content += fmt.Sprintf("shell: %q\n\n", cfg.Shell)
+	content += "# 会话超时（分钟）\n"
+	content += fmt.Sprintf("session_timeout: %d\n", cfg.SessionTimeout)
+	return os.WriteFile("config/config.yaml", []byte(content), 0644)
 }
 
 // defaultShell 根据操作系统返回默认 shell

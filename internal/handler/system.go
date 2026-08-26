@@ -125,6 +125,13 @@ func NewSettingsStore(file string) *SettingsStore {
 		Shell:          cfg.Shell,
 	}
 	s.load()
+	// 将持久化的运行时设置同步回全局 config，确保重启后设置依然生效
+	if s.settings.SessionTimeout > 0 {
+		cfg.SessionTimeout = s.settings.SessionTimeout
+	}
+	if s.settings.Shell != "" {
+		cfg.Shell = s.settings.Shell
+	}
 	return s
 }
 
@@ -166,6 +173,8 @@ func (s *SettingsStore) Update(rs RuntimeSettings) {
 	cfg := config.Get()
 	cfg.SessionTimeout = s.settings.SessionTimeout
 	cfg.Shell = s.settings.Shell
+	// 写回 config.yaml，使修改持久化到配置文件
+	_ = config.Save()
 }
 
 // ===== SystemHandler =====
@@ -275,7 +284,7 @@ func (h *SystemHandler) UpdateSettings(c *gin.Context) {
 	h.audit.Log(user, "修改设置", "系统设置",
 		fmt.Sprintf("session_timeout=%d, shell=%s", rs.SessionTimeout, rs.Shell),
 		c.ClientIP())
-	c.JSON(http.StatusOK, gin.H{"message": "设置已更新"})
+	c.JSON(http.StatusOK, gin.H{"message": "设置已更新并写入配置文件，会话超时需重新登录后生效"})
 }
 
 // ChangePassword 修改密码
