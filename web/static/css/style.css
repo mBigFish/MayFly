@@ -3337,7 +3337,7 @@ html[data-theme="dark"] .rs-payload-copy-btn:hover {
 }
 .sys-actions-row {
     display: grid;
-    grid-template-columns: 1fr 1fr 1fr;
+    grid-template-columns: 1fr 1fr;
     gap: 16px;
     align-items: start;
 }
@@ -3624,7 +3624,6 @@ html[data-theme="dark"] .rs-payload-copy-btn:hover {
 /* 系统管理响应式 */
 @media (max-width: 1200px) {
     .sys-stat-grid { grid-template-columns: repeat(3, 1fr); }
-    .sys-actions-row { grid-template-columns: 1fr 1fr; }
 }
 @media (max-width: 1000px) {
     .sys-overview-row { grid-template-columns: 1fr; }

@@ -140,6 +140,10 @@
                         <span class="user-name" id="username">admin</span>
                         <i class="fas fa-chevron-down user-chevron"></i>
                         <div class="dropdown-menu" id="dropdownMenu">
+                            <div class="dropdown-item" id="changePassMenuItem">
+                                <i class="fas fa-key"></i>
+                                <span>修改密码</span>
+                            </div>
                             <div class="dropdown-item" id="logoutBtn">
                                 <i class="fas fa-sign-out-alt"></i>
                                 <span>退出登录</span>
@@ -478,7 +482,7 @@
                         </div>
                     </div>
 
-                    <!-- 系统设置 + 修改密码 + 数据管理（三列） -->
+                    <!-- 系统设置 + 数据管理（两列） -->
                     <div class="sys-actions-row">
                         <div class="card sys-card">
                             <div class="card-header"><h3><i class="fas fa-sliders-h"></i> 系统设置</h3></div>
@@ -493,29 +497,6 @@
                                 </div>
                                 <div class="sys-card-footer">
                                     <button class="btn btn-primary btn-sm" id="sysSaveSettingsBtn"><i class="fas fa-save"></i> 保存设置</button>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="card sys-card">
-                            <div class="card-header"><h3><i class="fas fa-key"></i> 修改密码</h3></div>
-                            <div class="card-body">
-                                <div class="form-row">
-                                    <label>原密码</label>
-                                    <input type="password" id="sysOldPass" class="form-control" placeholder="当前密码" autocomplete="new-password">
-                                </div>
-                                <div class="form-row">
-                                    <label>新密码</label>
-                                    <input type="password" id="sysNewPass" class="form-control" placeholder="至少6位" autocomplete="new-password">
-                                </div>
-                                <div class="form-row">
-                                    <label>确认新密码</label>
-                                    <input type="password" id="sysConfirmPass" class="form-control" placeholder="再次输入新密码" autocomplete="new-password">
-                                </div>
-                                <div class="sys-card-footer">
-                                    <button class="btn btn-primary btn-sm" id="sysChangePassBtn"><i class="fas fa-check"></i> 修改密码</button>
-                                </div>
-                                <div class="sys-tip">
-                                    <i class="fas fa-info-circle"></i> 密码修改仅运行时生效，重启后恢复为环境变量的值
                                 </div>
                             </div>
                         </div>
@@ -550,6 +531,37 @@
                 </div>
             </div>
         </main>
+    </div>
+
+    <!-- 修改密码模态框 -->
+    <div id="changePassModal" class="modal-overlay" style="display: none;">
+        <div class="modal">
+            <div class="modal-header">
+                <h3>修改密码</h3>
+                <button class="modal-close" onclick="closeModal('changePassModal')"><i class="fas fa-times"></i></button>
+            </div>
+            <div class="modal-body">
+                <div class="form-row">
+                    <label>原密码</label>
+                    <input type="password" id="sysOldPass" class="form-control" placeholder="当前密码" autocomplete="new-password">
+                </div>
+                <div class="form-row">
+                    <label>新密码</label>
+                    <input type="password" id="sysNewPass" class="form-control" placeholder="至少6位" autocomplete="new-password">
+                </div>
+                <div class="form-row">
+                    <label>确认新密码</label>
+                    <input type="password" id="sysConfirmPass" class="form-control" placeholder="再次输入新密码" autocomplete="new-password">
+                </div>
+                <div class="sys-tip">
+                    <i class="fas fa-info-circle"></i> 密码修改仅运行时生效，重启后恢复为环境变量的值
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('changePassModal')">取消</button>
+                <button class="btn btn-primary" id="sysChangePassBtn"><i class="fas fa-check"></i> 修改密码</button>
+            </div>
+        </div>
     </div>
 
     <!-- 节点模态框 -->

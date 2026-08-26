@@ -1144,7 +1144,7 @@ function runQuickCmd(cmd) {
 async function loadCmdHistory() {
     const n = state.currentNode;
     const out = document.getElementById('cmdOutput');
-    if (!n) { out.textContent = ''; return; }
+    if (!n) { out.textContent = ''; toast('请先选择节点', 'error'); return; }
     const r = await api('GET', '/nodes/' + n.id + '/cmd/history');
     const records = (r.data && r.data.history) || [];
     let text = '';
@@ -1582,9 +1582,6 @@ function bindEvents() {
     document.getElementById('saveNodeBtn').onclick = saveNode;
     document.getElementById('clearNodeListBtn').onclick = clearNodeList;
     document.getElementById('connectBtn').onclick = testNode;
-    document.getElementById('logoutBtn').onclick = () => {
-        if (confirm('确定退出登录？')) logout(false);
-    };
 
     // 用户下拉菜单
     const userDropdown = document.getElementById('userDropdown');
@@ -1593,6 +1590,15 @@ function bindEvents() {
         userDropdown.classList.toggle('open');
     };
     document.addEventListener('click', () => userDropdown.classList.remove('open'));
+
+    document.getElementById('logoutBtn').onclick = () => {
+        if (confirm('确定退出登录？')) logout(false);
+    };
+    document.getElementById('changePassMenuItem').onclick = (e) => {
+        e.stopPropagation();
+        userDropdown.classList.remove('open');
+        openModal('changePassModal');
+    };
 
     // 顶部搜索框联动节点搜索
     document.getElementById('headerSearch').oninput = debounce((e) => {
@@ -1746,6 +1752,7 @@ function bindEvents() {
         document.getElementById('sysOldPass').value = '';
         document.getElementById('sysNewPass').value = '';
         document.getElementById('sysConfirmPass').value = '';
+        closeModal('changePassModal');
     };
 
     document.getElementById('sysExportBtn').onclick = async () => {
