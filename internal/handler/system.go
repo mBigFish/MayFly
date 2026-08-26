@@ -105,6 +105,7 @@ func (s *AuditStore) Clear() {
 type RuntimeSettings struct {
 	SessionTimeout int    `json:"session_timeout"`
 	Shell          string `json:"shell"`
+	Theme          string `json:"theme"`
 }
 
 // SettingsStore 设置存储
@@ -156,6 +157,9 @@ func (s *SettingsStore) Update(rs RuntimeSettings) {
 	}
 	if rs.Shell != "" {
 		s.settings.Shell = rs.Shell
+	}
+	if rs.Theme != "" {
+		s.settings.Theme = rs.Theme
 	}
 	s.save()
 	// 同步到运行时 config
@@ -234,6 +238,24 @@ func (h *SystemHandler) SysInfo(c *gin.Context) {
 // GET /api/system/settings
 func (h *SystemHandler) GetSettings(c *gin.Context) {
 	c.JSON(http.StatusOK, h.settings.Get())
+}
+
+// UpdateTheme 更新界面主题（服务端持久化）
+// PUT /api/system/theme
+func (h *SystemHandler) UpdateTheme(c *gin.Context) {
+	var req struct {
+		Theme string `json:"theme" binding:"required"`
+	}
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "请求参数无效"})
+		return
+	}
+	if req.Theme != "glass" && req.Theme != "frosted" && req.Theme != "dark" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "无效的主题"})
+		return
+	}
+	h.settings.Update(RuntimeSettings{Theme: req.Theme})
+	c.JSON(http.StatusOK, gin.H{"message": "主题已更新"})
 }
 
 // UpdateSettings 更新运行时设置

@@ -796,29 +796,38 @@ async function loadSystemInfo() {
         const r = await api('GET', '/system/info');
         if (r.status === 401) return;
         const d = r.data;
-        document.getElementById('sysInfoBody').innerHTML =
-            '<table class="sys-info-table">' +
-            '<tr><td>版本</td><td>' + escapeHtml(d.version) + '</td></tr>' +
-            '<tr><td>Go 版本</td><td>' + escapeHtml(d.go_version) + '</td></tr>' +
-            '<tr><td>操作系统</td><td>' + escapeHtml(d.os + '/' + d.arch) + '</td></tr>' +
-            '<tr><td>CPU 核心</td><td>' + d.cpu_num + '</td></tr>' +
-            '<tr><td>Goroutine</td><td>' + d.goroutines + '</td></tr>' +
-            '<tr><td>启动时间</td><td>' + escapeHtml(d.start_time) + '</td></tr>' +
-            '<tr><td>运行时长</td><td>' + escapeHtml(d.uptime) + '</td></tr>' +
-            '</table>';
+
+        // 系统概览统计卡片
+        const stats = [
+            { icon: 'fa-rocket', label: '版本', value: escapeHtml(d.version) },
+            { icon: 'fa-code', label: 'Go 版本', value: escapeHtml(d.go_version) },
+            { icon: 'fa-laptop', label: '操作系统', value: escapeHtml(d.os + '/' + d.arch) },
+            { icon: 'fa-microchip', label: 'CPU 核心', value: d.cpu_num },
+            { icon: 'fa-circle-nodes', label: 'Goroutine', value: d.goroutines },
+            { icon: 'fa-memory', label: '内存分配', value: d.mem_alloc + ' MB' },
+            { icon: 'fa-hdd', label: '系统内存', value: d.mem_sys + ' MB' },
+            { icon: 'fa-database', label: '累计分配', value: d.mem_total + ' MB' },
+            { icon: 'fa-recycle', label: 'GC 次数', value: d.gc_count },
+            { icon: 'fa-clipboard-list', label: '审计日志', value: d.audit_count + ' 条' },
+        ];
+        document.getElementById('sysStatGrid').innerHTML = stats.map((s) =>
+            '<div class="sys-stat-item">' +
+                '<div class="sys-stat-icon"><i class="fas ' + s.icon + '"></i></div>' +
+                '<div class="sys-stat-info">' +
+                    '<div class="sys-stat-value">' + s.value + '</div>' +
+                    '<div class="sys-stat-label">' + s.label + '</div>' +
+                '</div>' +
+            '</div>'
+        ).join('');
+
+        // 头部运行时长
+        document.getElementById('sysUptimeMeta').innerHTML =
+            '<i class="fas fa-clock"></i> 已运行 ' + escapeHtml(d.uptime) +
+            ' · 启动于 ' + escapeHtml(d.start_time);
 
         // 数据文件
         const files = d.data_files || {};
         const fileNames = Object.keys(files);
-
-        document.getElementById('sysRuntimeBody').innerHTML =
-            '<table class="sys-info-table">' +
-            '<tr><td>内存分配</td><td>' + d.mem_alloc + ' MB</td></tr>' +
-            '<tr><td>系统内存</td><td>' + d.mem_sys + ' MB</td></tr>' +
-            '<tr><td>累计分配</td><td>' + d.mem_total + ' MB</td></tr>' +
-            '<tr><td>GC 次数</td><td>' + d.gc_count + '</td></tr>' +
-            '<tr><td>审计日志</td><td>' + d.audit_count + ' 条</td></tr>' +
-            '</table>';
 
         // 数据管理 - 数据文件列表
         const dataFilesEl = document.getElementById('sysDataFiles');
@@ -1606,6 +1615,7 @@ function bindEvents() {
         item.onclick = (e) => {
             e.stopPropagation();
             applyTheme(item.dataset.theme);
+            persistTheme(item.dataset.theme);
             themeDropdown.classList.remove('open');
             toast('已切换为「' + (THEME_NAMES[item.dataset.theme] || item.dataset.theme) + '」', 'success');
         };
@@ -1827,6 +1837,23 @@ function applyTheme(theme) {
     updateTerminalsTheme();
 }
 
+// 将主题保存到服务端（持久化到 data/settings.json）
+function persistTheme(theme) {
+    api('PUT', '/system/theme', { theme }).catch(() => {});
+}
+
+// 登录后从服务端同步主题，覆盖本地缓存
+async function syncThemeFromServer() {
+    try {
+        const r = await api('GET', '/system/settings');
+        if (r.status === 401) return;
+        const theme = r.data.theme;
+        if (theme === 'frosted' || theme === 'glass' || theme === 'dark') {
+            applyTheme(theme);
+        }
+    } catch (e) { /* 服务端未返回主题时保留本地缓存 */ }
+}
+
 function initTheme() {
     applyTheme(currentTheme());
 }
@@ -1844,6 +1871,7 @@ function clearAutoFilledInputs() {
 async function init() {
     if (!state.token) { window.location.href = '/login'; return; }
     initTheme();
+    syncThemeFromServer();
     document.getElementById('username').textContent = state.user;
     // 阻止浏览器刷新时自动恢复输入框历史内容（搜索框/命令框被自动填入）
     clearAutoFilledInputs();

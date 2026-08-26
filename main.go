@@ -134,6 +134,7 @@ func main() {
 		authAPI.GET("/system/info", systemHandler.SysInfo)
 		authAPI.GET("/system/settings", systemHandler.GetSettings)
 		authAPI.PUT("/system/settings", systemHandler.UpdateSettings)
+		authAPI.PUT("/system/theme", systemHandler.UpdateTheme)
 		authAPI.POST("/system/password", systemHandler.ChangePassword)
 		authAPI.GET("/system/audit-logs", systemHandler.GetAuditLogs)
 		authAPI.DELETE("/system/audit-logs", systemHandler.ClearAuditLogs)

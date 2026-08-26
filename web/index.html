@@ -119,17 +119,17 @@
                             <i class="fas fa-cog"></i>
                         </button>
                         <div class="dropdown-menu theme-menu" id="themeMenu">
-                            <div class="dropdown-item theme-item" data-theme="frosted">
-                                <i class="fas fa-snowflake"></i>
-                                <span>毛玻璃效果</span>
-                            </div>
                             <div class="dropdown-item theme-item" data-theme="glass">
                                 <i class="fas fa-gem"></i>
-                                <span>玻璃效果</span>
+                                <span>系统默认效果</span>
+                            </div>
+                            <div class="dropdown-item theme-item" data-theme="frosted">
+                                <i class="fas fa-snowflake"></i>
+                                <span>白天玻璃效果</span>
                             </div>
                             <div class="dropdown-item theme-item" data-theme="dark">
                                 <i class="fas fa-moon"></i>
-                                <span>黑夜效果</span>
+                                <span>黑夜玻璃效果</span>
                             </div>
                         </div>
                     </div>
@@ -465,24 +465,21 @@
 
                 <!-- 系统管理视图 -->
                 <div id="systemView" class="system-view hidden">
-                    <!-- 系统信息 + 运行状态（左宽右窄） -->
-                    <div class="sys-overview-row">
-                        <div class="card sys-card">
-                            <div class="card-header"><h3><i class="fas fa-info-circle"></i> 系统信息</h3></div>
-                            <div class="card-body" id="sysInfoBody">
-                                <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>加载中...</p></div>
-                            </div>
+                    <!-- 系统概览：所有指标以统计卡片网格展示 -->
+                    <div class="card sys-card">
+                        <div class="card-header">
+                            <h3><i class="fas fa-tachometer-alt"></i> 系统概览</h3>
+                            <span class="sys-header-meta" id="sysUptimeMeta"></span>
                         </div>
-                        <div class="card sys-card">
-                            <div class="card-header"><h3><i class="fas fa-memory"></i> 运行状态</h3></div>
-                            <div class="card-body" id="sysRuntimeBody">
+                        <div class="card-body">
+                            <div class="sys-stat-grid" id="sysStatGrid">
                                 <div class="empty-state"><i class="fas fa-spinner fa-spin"></i><p>加载中...</p></div>
                             </div>
                         </div>
                     </div>
 
-                    <!-- 设置 + 密码修改 -->
-                    <div class="sys-settings-row">
+                    <!-- 系统设置 + 修改密码 + 数据管理（三列） -->
+                    <div class="sys-actions-row">
                         <div class="card sys-card">
                             <div class="card-header"><h3><i class="fas fa-sliders-h"></i> 系统设置</h3></div>
                             <div class="card-body">
@@ -494,7 +491,7 @@
                                     <label>默认 Shell</label>
                                     <input type="text" id="sysShell" class="form-control" placeholder="bash / powershell.exe">
                                 </div>
-                                <div style="margin-top:12px;text-align:right;">
+                                <div class="sys-card-footer">
                                     <button class="btn btn-primary btn-sm" id="sysSaveSettingsBtn"><i class="fas fa-save"></i> 保存设置</button>
                                 </div>
                             </div>
@@ -514,28 +511,24 @@
                                     <label>确认新密码</label>
                                     <input type="password" id="sysConfirmPass" class="form-control" placeholder="再次输入新密码" autocomplete="new-password">
                                 </div>
-                                <div style="margin-top:12px;text-align:right;">
+                                <div class="sys-card-footer">
                                     <button class="btn btn-primary btn-sm" id="sysChangePassBtn"><i class="fas fa-check"></i> 修改密码</button>
                                 </div>
-                                <div class="sys-tip" style="margin-top:8px;font-size:11px;color:var(--text-muted);">
+                                <div class="sys-tip">
                                     <i class="fas fa-info-circle"></i> 密码修改仅运行时生效，重启后恢复为环境变量的值
                                 </div>
                             </div>
                         </div>
-                    </div>
-
-                    <!-- 数据管理 -->
-                    <div class="card sys-card">
-                        <div class="card-header">
-                            <h3><i class="fas fa-database"></i> 数据管理</h3>
-                        </div>
-                        <div class="card-body">
-                            <div class="sys-data-actions">
-                                <button class="btn btn-primary btn-sm" id="sysExportBtn"><i class="fas fa-download"></i> 导出所有数据</button>
-                                <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0;">
-                                    <i class="fas fa-upload"></i> 导入数据
-                                    <input type="file" id="sysImportInput" class="hidden" accept=".json">
-                                </label>
+                        <div class="card sys-card">
+                            <div class="card-header"><h3><i class="fas fa-database"></i> 数据管理</h3></div>
+                            <div class="card-body">
+                                <div class="sys-data-actions">
+                                    <button class="btn btn-primary btn-sm" id="sysExportBtn"><i class="fas fa-download"></i> 导出所有数据</button>
+                                    <label class="btn btn-secondary btn-sm" style="cursor:pointer;margin:0;">
+                                        <i class="fas fa-upload"></i> 导入数据
+                                        <input type="file" id="sysImportInput" class="hidden" accept=".json">
+                                    </label>
+                                </div>
                                 <div class="sys-data-files" id="sysDataFiles"></div>
                             </div>
                         </div>

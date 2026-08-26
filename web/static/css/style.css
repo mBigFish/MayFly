@@ -3335,10 +3335,11 @@ html[data-theme="dark"] .rs-payload-copy-btn:hover {
     grid-template-columns: 1.6fr 1fr;
     gap: 16px;
 }
-.sys-settings-row {
+.sys-actions-row {
     display: grid;
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr 1fr 1fr;
     gap: 16px;
+    align-items: start;
 }
 .sys-card {
     background: var(--bg-card);
@@ -3362,12 +3363,82 @@ html[data-theme="dark"] .rs-payload-copy-btn:hover {
     align-items: center;
     gap: 8px;
 }
+.sys-header-meta {
+    font-size: 12px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
 .sys-card .card-header-actions {
     display: flex;
     gap: 8px;
 }
 .sys-card .card-body {
     padding: 16px 20px;
+}
+.sys-card-footer {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 12px;
+}
+.sys-tip {
+    margin-top: 8px;
+    font-size: 11px;
+    color: var(--text-muted);
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    line-height: 1.5;
+}
+
+/* 系统概览统计卡片网格 */
+.sys-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 12px;
+}
+.sys-stat-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 16px;
+    background: var(--glass-bg);
+    border: 1px solid var(--border-color);
+    border-radius: 10px;
+    transition: var(--transition);
+}
+.sys-stat-item:hover {
+    border-color: var(--primary);
+    background: var(--glass-bg-hover);
+}
+.sys-stat-icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    background: var(--primary-light);
+    color: var(--primary);
+    font-size: 15px;
+}
+.sys-stat-info {
+    min-width: 0;
+}
+.sys-stat-value {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.sys-stat-label {
+    font-size: 11.5px;
+    color: var(--text-muted);
+    margin-top: 2px;
 }
 
 /* 系统信息表格 */
@@ -3551,7 +3622,15 @@ html[data-theme="dark"] .rs-payload-copy-btn:hover {
 }
 
 /* 系统管理响应式 */
+@media (max-width: 1200px) {
+    .sys-stat-grid { grid-template-columns: repeat(3, 1fr); }
+    .sys-actions-row { grid-template-columns: 1fr 1fr; }
+}
 @media (max-width: 1000px) {
-    .sys-overview-row,
-    .sys-settings-row { grid-template-columns: 1fr; }
+    .sys-overview-row { grid-template-columns: 1fr; }
+}
+@media (max-width: 700px) {
+    .sys-stat-grid { grid-template-columns: repeat(2, 1fr); }
+    .sys-actions-row { grid-template-columns: 1fr; }
+    .sys-header-meta { display: none; }
 }
