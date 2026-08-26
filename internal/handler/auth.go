@@ -49,7 +49,19 @@ func Login(c *gin.Context) {
 		// 失败延迟，减缓爆破速度
 		time.Sleep(loginFailDelay)
 		limiter.recordFailure(ip)
-		c.JSON(http.StatusUnauthorized, gin.H{"error": "用户名或密码错误"})
+		remaining := limiter.getRemaining(ip)
+		if remaining <= 0 {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":     "用户名或密码错误",
+				"remaining": 0,
+				"locked":    true,
+			})
+		} else {
+			c.JSON(http.StatusUnauthorized, gin.H{
+				"error":     "用户名或密码错误",
+				"remaining": remaining,
+			})
+		}
 		return
 	}
 

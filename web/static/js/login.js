@@ -38,7 +38,13 @@
                         localStorage.removeItem('mayfly_ui_state');
                         window.location.href = '/';
                     } else {
-                errorMsg.textContent = data.error || '登录失败';
+                let msg = data.error || '登录失败';
+                if (data.locked) {
+                    msg += '，IP 已被锁定，请 15 分钟后再试';
+                } else if (typeof data.remaining === 'number' && data.remaining < 5) {
+                    msg += '，还剩 ' + data.remaining + ' 次机会，超过后 IP 将被锁定 15 分钟';
+                }
+                errorMsg.textContent = msg;
                 errorMsg.style.display = 'block';
             }
         } catch (err) {

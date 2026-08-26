@@ -40,6 +40,10 @@ func (l *loginLimiter) isLocked(ip string) bool {
 	if !ok {
 		return false
 	}
+	// 尚未触发锁定（还在累计失败次数阶段），不删除记录
+	if a.lockedUntil.IsZero() {
+		return false
+	}
 	// 锁定期已过则清除记录
 	if time.Now().After(a.lockedUntil) {
 		delete(l.attempts, ip)
@@ -70,4 +74,19 @@ func (l *loginLimiter) reset(ip string) {
 	l.mu.Lock()
 	defer l.mu.Unlock()
 	delete(l.attempts, ip)
+}
+
+// getRemaining 返回该 IP 剩余的失败次数（到达阈值后锁定）
+func (l *loginLimiter) getRemaining(ip string) int {
+	l.mu.Lock()
+	defer l.mu.Unlock()
+	a, ok := l.attempts[ip]
+	if !ok {
+		return maxLoginFailures
+	}
+	remain := maxLoginFailures - a.failCount
+	if remain < 0 {
+		remain = 0
+	}
+	return remain
 }

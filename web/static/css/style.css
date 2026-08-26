@@ -3339,9 +3339,11 @@ html[data-theme="dark"] .rs-payload-copy-btn:hover {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 16px;
-    align-items: start;
+    align-items: stretch;
 }
 .sys-card {
+    display: flex;
+    flex-direction: column;
     background: var(--bg-card);
     border: var(--glass-border);
     border-radius: 12px;
@@ -3375,12 +3377,16 @@ html[data-theme="dark"] .rs-payload-copy-btn:hover {
     gap: 8px;
 }
 .sys-card .card-body {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
     padding: 16px 20px;
 }
 .sys-card-footer {
     display: flex;
     justify-content: flex-end;
-    margin-top: 12px;
+    margin-top: auto;
+    padding-top: 12px;
 }
 .sys-tip {
     margin-top: 8px;
@@ -3502,8 +3508,21 @@ html[data-theme="dark"] .rs-payload-copy-btn:hover {
     align-items: center;
 }
 .sys-data-files {
+    flex: 1;
     width: 100%;
     margin-top: 8px;
+    max-height: 220px;
+    overflow-y: auto;
+}
+.sys-data-files::-webkit-scrollbar {
+    width: 6px;
+}
+.sys-data-files::-webkit-scrollbar-track {
+    background: transparent;
+}
+.sys-data-files::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 3px;
 }
 .sys-data-files-list {
     display: flex;
