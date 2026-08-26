@@ -59,14 +59,17 @@ func main() {
 	r.StaticFile("/login", "./web/login.html")
 	r.StaticFile("/", "./web/index.html")
 
+	// 审计日志存储（需在路由注册前创建，供登录接口使用）
+	auditStore := handler.NewAuditStore("data/audit_log.json", 2000)
+	// 初始化登录审计（登录接口不经过审计中间件，需单独记录）
+	handler.InitLoginAudit(auditStore)
+
 	// 公开 API
 	api := r.Group("/api")
 	{
 		api.POST("/login", handler.Login)
 	}
 
-	// 审计日志存储
-	auditStore := handler.NewAuditStore("data/audit_log.json", 2000)
 	// 运行时设置存储
 	settingsStore := handler.NewSettingsStore("data/settings.json")
 	// 系统管理 Handler

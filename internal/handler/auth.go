@@ -2,6 +2,7 @@ package handler
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -10,6 +11,14 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
+
+// loginAudit 登录审计日志存储（需在 main.go 中初始化）
+var loginAudit *AuditStore
+
+// InitLoginAudit 初始化登录审计（在 auditStore 创建后调用）
+func InitLoginAudit(audit *AuditStore) {
+	loginAudit = audit
+}
 
 // LoginRequest 登录请求
 type LoginRequest struct {
@@ -50,6 +59,10 @@ func Login(c *gin.Context) {
 		time.Sleep(loginFailDelay)
 		limiter.recordFailure(ip)
 		remaining := limiter.getRemaining(ip)
+		// 记录登录失败审计日志
+		if loginAudit != nil {
+			loginAudit.Log(req.Username, "登录失败", "认证", fmt.Sprintf("IP: %s，剩余 %d 次", ip, remaining), ip)
+		}
 		if remaining <= 0 {
 			c.JSON(http.StatusUnauthorized, gin.H{
 				"error":     "用户名或密码错误",
@@ -67,6 +80,11 @@ func Login(c *gin.Context) {
 
 	// 登录成功，清除该 IP 的失败记录
 	limiter.reset(ip)
+
+	// 记录登录成功审计日志
+	if loginAudit != nil {
+		loginAudit.Log(req.Username, "登录成功", "认证", fmt.Sprintf("IP: %s", ip), ip)
+	}
 
 	// 生成 JWT
 	claims := &Claims{

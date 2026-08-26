@@ -12,7 +12,7 @@ password: "mayfly123"
 jwt_secret: "kX7#mP$2qLnV9@wR5tBjY8&fHdZ3cA0s"
 
 # 默认终端 shell（Windows 为 powershell.exe，Linux/macOS 为 bash）
-shell: ""
+shell: "powershell.exe"
 
 # 会话超时（分钟）
-session_timeout: 30
+session_timeout: 300
