@@ -143,21 +143,37 @@
 
 > 截图统一存放在 [`docs/screenshots/`](docs/screenshots) 目录。
 
-| 登录页 | 仪表盘 |
-|:---:|:---:|
-| <img src="docs/screenshots/login.png" width="100%"> | <img src="docs/screenshots/dashboard.png" width="100%"> |
+- 登录页
 
-| 节点面板 | 文件管理 |
-|:---:|:---:|
-| <img src="docs/screenshots/node-panel.png" width="100%"> | <img src="docs/screenshots/file-manager.png" width="100%"> |
+  ![登录页](docs/screenshots/login.png)
 
-| 命令执行 | 交互终端（WebShell 虚拟终端） |
-|:---:|:---:|
-| <img src="docs/screenshots/command-exec.png" width="100%"> | <img src="docs/screenshots/terminal-webshell.png" width="100%"> |
+- 仪表盘
 
-| 终端操作（SSH 服务器终端） | 反弹 Shell |
-|:---:|:---:|
-| <img src="docs/screenshots/terminal-ssh.png" width="100%"> | <img src="docs/screenshots/reverse-shell.png" width="100%"> |
+  ![仪表盘](docs/screenshots/dashboard.png)
+
+- 节点面板
+
+  ![节点面板](docs/screenshots/node-panel.png)
+
+- 文件管理
+
+  ![文件管理](docs/screenshots/file-manager.png)
+
+- 命令执行
+
+  ![命令执行](docs/screenshots/command-exec.png)
+
+- 交互终端（WebShell 虚拟终端）
+
+  ![交互终端](docs/screenshots/terminal-webshell.png)
+
+- 终端操作（SSH 服务器终端）
+
+  ![终端操作](docs/screenshots/terminal-ssh.png)
+
+- 反弹 Shell
+
+  ![反弹 Shell](docs/screenshots/reverse-shell.png)
 
 ## 安装
 
