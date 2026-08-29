@@ -9,6 +9,7 @@
   <img alt="Go Version" src="https://img.shields.io/badge/Go-1.21+-00ADD8?logo=go">
   <img alt="License" src="https://img.shields.io/badge/License-MIT-blue.svg">
   <img alt="Platform" src="https://img.shields.io/badge/Platform-Windows%20%7C%20Linux%20%7C%20macOS-lightgrey">
+  <img alt="Release" src="https://img.shields.io/github/v/release/mBigFish/MayFly?logo=github&color=2ea44f">
   <img alt="Docker" src="https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker">
 </p>
 
@@ -47,8 +48,7 @@
 - [核心架构](#核心架构)
 - [功能总览](#功能总览)
 - [截图预览](#截图预览)
-- [快速开始](#快速开始)
-- [Docker 部署](#docker-部署)
+- [安装](#安装)
 - [使用流程](#使用流程)
 - [服务端脚本支持](#服务端脚本支持)
 - [通信协议](#通信协议)
@@ -143,20 +143,63 @@
 
 > 可在项目根目录查看 `node-panel-new-style.png` 了解界面风格
 
-## 快速开始
+## 安装
 
-### 1. 源码编译
+### 方式一：下载预编译二进制（推荐）
+
+每个版本都会在 [Releases](https://github.com/mBigFish/MayFly/releases) 中提供各平台编译好的二进制，**下载解压后即可运行，无需安装 Go 环境**。
+
+**1. 确认自己的系统与架构**
+
+Linux / macOS：
 
 ```bash
-git clone https://github.com/yourname/Mayfly.git
-cd Mayfly
-go mod tidy
-go build -o mayfly .
+uname -s && uname -m
 ```
 
-### 2. 运行
+Windows（CMD）：
+
+```bat
+echo %PROCESSOR_ARCHITECTURE%
+```
+
+| `uname -s` 输出 | `uname -m` 输出 | 需要下载的文件 |
+|---|---|---|
+| `Linux` | `x86_64` | `mayfly-linux-amd64.zip` |
+| `Linux` | `aarch64` / `arm64` | `mayfly-linux-arm64.zip` |
+| `Darwin` | `x86_64` | `mayfly-darwin-amd64.zip` |
+| `Darwin` | `arm64` | `mayfly-darwin-arm64.zip` |
+| Windows | `AMD64` | `mayfly-windows-amd64.zip` |
+
+**2. 下载并解压**
 
 ```bash
+# 以 Linux amd64 为例，其他平台替换成上表对应的文件名
+curl -L -o mayfly-linux-amd64.zip \
+  https://github.com/mBigFish/MayFly/releases/latest/download/mayfly-linux-amd64.zip
+unzip mayfly-linux-amd64.zip && cd mayfly-linux-amd64
+```
+
+也可以直接到 [Releases 页面](https://github.com/mBigFish/MayFly/releases) 手动下载。
+
+解压后的目录结构：
+
+```
+mayfly-linux-amd64/
+├── mayfly              #（Windows 为 mayfly.exe）
+├── web/                # 前端页面，必须保留
+├── payloads/           # WebShell 脚本模板，必须保留
+└── config/config.yaml  # 可选，留空则使用默认值
+```
+
+> ⚠️ `mayfly` 会读取**当前工作目录**下的 `web/` 和 `payloads/`，请勿把二进制单独拷走，必须整目录解压后在该目录内启动。
+
+**3. 运行**
+
+```bash
+# Linux / macOS：赋予执行权限
+chmod +x mayfly
+
 # 默认配置（端口 8080，账号 admin / mayfly123）
 ./mayfly
 
@@ -164,13 +207,34 @@ go build -o mayfly .
 MAYFLY_PORT=9090 MAYFLY_USER=myuser MAYFLY_PASS=mypassword ./mayfly
 ```
 
-> Windows 也可直接双击 `start.bat` 启动。
+```bat
+:: Windows（CMD）
+mayfly.exe
 
-### 3. 访问
+:: 自定义配置
+set MAYFLY_PORT=9090 && set MAYFLY_USER=myuser && set MAYFLY_PASS=mypassword && mayfly.exe
+```
 
-打开 `http://localhost:8080`，使用配置的账号密码登录。
+Windows 也可直接双击 `mayfly.exe` 启动；若保留了仓库中的 `start.bat`，把 exe 重命名为 `mayfly.exe` 后双击 `start.bat` 同样可以。
 
-## Docker 部署
+**4. 访问**
+
+浏览器打开 `http://localhost:8080`，使用配置的账号密码登录。
+
+> 若部署在 VPS 上，需放行对应端口（或配合 Nginx/Caddy 反代），然后访问 `http://<服务器IP>:8080`。
+
+**常见问题**
+
+| 平台 | 现象 | 解决 |
+|------|------|------|
+| macOS | 提示「无法打开，因为无法验证开发者」 | 执行 `xattr -d com.apple.quarantine ./mayfly`，或在「系统设置 → 隐私与安全性」中点击「仍要打开」 |
+| Linux / macOS | `Permission denied` | 执行 `chmod +x ./mayfly` |
+| Windows | SmartScreen 蓝色拦截窗口 | 点击「更多信息」→「仍要运行」 |
+| 全部 | 页面空白 / 样式丢失 / 获取脚本失败 | 确认在解压目录下启动，`web/` 与 `payloads/` 与二进制同级 |
+
+> ⚠️ 首次运行前请务必修改默认密码与 JWT 密钥，详见 [安全注意事项](#安全注意事项)。
+
+### 方式二：Docker 部署
 
 项目自带 `Dockerfile` 和 `docker-compose.yaml`，支持一键容器化部署：
 
@@ -203,6 +267,22 @@ services:
       - ./config/config.yaml:/app/config/config.yaml:ro
     environment:
       - GIN_MODE=release
+```
+
+### 方式三：源码编译
+
+需要本地安装 Go 1.21+：
+
+```bash
+git clone https://github.com/mBigFish/MayFly.git
+cd MayFly
+go mod tidy
+go build -o mayfly .
+
+# 交叉编译示例（在任意平台为其他平台构建）
+GOOS=linux   GOARCH=amd64 go build -o mayfly-linux-amd64 .
+GOOS=darwin  GOARCH=arm64 go build -o mayfly-darwin-arm64 .
+GOOS=windows GOARCH=amd64 go build -o mayfly-windows-amd64.exe .
 ```
 
 ## 使用流程
