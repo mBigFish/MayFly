@@ -1,9 +1,13 @@
 package main
 
 import (
+	"embed"
 	"fmt"
+	"io/fs"
 	"log"
+	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"mayfly/config"
@@ -14,6 +18,25 @@ import (
 
 	"github.com/gin-gonic/gin"
 )
+
+//go:embed web
+var webFS embed.FS
+
+//go:embed payloads
+var payloadsFS embed.FS
+
+// resolvePath 优先使用可执行文件所在目录下的资源路径，找不到时回退到当前工作目录。
+// 这样无论进入目录运行，还是从 Finder 双击运行（工作目录为用户主目录），都能正确加载 web/、data/ 等资源。
+func resolvePath(sub string) string {
+	if exe, err := os.Executable(); err == nil {
+		if abs, err := filepath.Abs(filepath.Join(filepath.Dir(exe), sub)); err == nil {
+			if _, err := os.Stat(abs); err == nil {
+				return abs
+			}
+		}
+	}
+	return sub
+}
 
 func main() {
 	// 初始化配置
@@ -27,16 +50,16 @@ func main() {
 	}
 
 	// 初始化节点存储
-	nodeStore, err := store.New("data/nodes.json")
+	nodeStore, err := store.New(resolvePath("data/nodes.json"))
 	if err != nil {
 		log.Fatalf("初始化节点存储失败: %v", err)
 	}
 	// 命令执行历史缓存存储
-	cmdHistoryStore, err := store.NewCmdHistory("data/cmd_history.json")
+	cmdHistoryStore, err := store.NewCmdHistory(resolvePath("data/cmd_history.json"))
 	if err != nil {
 		log.Fatalf("初始化命令历史存储失败: %v", err)
 	}
-	nodeHandler := handler.NewNodeHandler(nodeStore, cmdHistoryStore)
+	nodeHandler := handler.NewNodeHandler(nodeStore, cmdHistoryStore, payloadsFS)
 	serverTermHandler := handler.NewServerTerminalHandler()
 	termWSHandler := handler.NewTerminalWSHandler(nodeStore)
 	listenerHandler := handler.NewListenerHandler()
@@ -54,13 +77,29 @@ func main() {
 		c.Next()
 	})
 
-	// 静态文件服务
-	r.Static("/static", "./web/static")
-	r.StaticFile("/login", "./web/login.html")
-	r.StaticFile("/", "./web/index.html")
+	// 静态文件服务：前端已通过 go:embed 编译进二进制，单文件即可运行，无需外部 web/ 目录
+	webRoot, err := fs.Sub(webFS, "web")
+	if err != nil {
+		log.Fatalf("加载内置前端资源失败: %v", err)
+	}
+	staticRoot, err := fs.Sub(webRoot, "static")
+	if err != nil {
+		log.Fatalf("加载内置静态资源失败: %v", err)
+	}
+	r.StaticFS("/static", http.FS(staticRoot))
+	r.StaticFileFS("/login", "login.html", http.FS(webRoot))
+	// 首页：直接返回嵌入的 index.html（不能用 StaticFileFS("/")，否则路径 "/" 会被当成目录触发 301 重定向导致白屏）
+	r.GET("/", func(c *gin.Context) {
+		data, err := fs.ReadFile(webRoot, "index.html")
+		if err != nil {
+			c.Status(http.StatusNotFound)
+			return
+		}
+		c.Data(http.StatusOK, "text/html; charset=utf-8", data)
+	})
 
 	// 审计日志存储（需在路由注册前创建，供登录接口使用）
-	auditStore := handler.NewAuditStore("data/audit_log.json", 2000)
+	auditStore := handler.NewAuditStore(resolvePath("data/audit_log.json"), 2000)
 	// 初始化登录审计（登录接口不经过审计中间件，需单独记录）
 	handler.InitLoginAudit(auditStore)
 
@@ -71,7 +110,7 @@ func main() {
 	}
 
 	// 运行时设置存储
-	settingsStore := handler.NewSettingsStore("data/settings.json")
+	settingsStore := handler.NewSettingsStore(resolvePath("data/settings.json"))
 	// 系统管理 Handler
 	systemHandler := handler.NewSystemHandler(auditStore, settingsStore)
 

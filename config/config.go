@@ -3,11 +3,24 @@ package config
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 	"strconv"
 
 	"gopkg.in/yaml.v3"
 )
+
+// resolvePath 优先使用可执行文件所在目录下的资源路径，找不到时回退到当前工作目录。
+func resolvePath(sub string) string {
+	if exe, err := os.Executable(); err == nil {
+		if abs, err := filepath.Abs(filepath.Join(filepath.Dir(exe), sub)); err == nil {
+			if _, err := os.Stat(abs); err == nil {
+				return abs
+			}
+		}
+	}
+	return sub
+}
 
 // Config 全局配置
 type Config struct {
@@ -39,7 +52,7 @@ func Init() {
 	}
 
 	// 2. 加载 config.yaml（若存在），覆盖默认值
-	loadYAML("config/config.yaml")
+	loadYAML(resolvePath("config/config.yaml"))
 
 	// 3. 环境变量覆盖（优先级最高）
 	if v := os.Getenv("MAYFLY_PORT"); v != "" {
@@ -122,7 +135,11 @@ func Save() error {
 	content += fmt.Sprintf("shell: %q\n\n", cfg.Shell)
 	content += "# 会话超时（分钟）\n"
 	content += fmt.Sprintf("session_timeout: %d\n", cfg.SessionTimeout)
-	return os.WriteFile("config/config.yaml", []byte(content), 0644)
+	path := resolvePath("config/config.yaml")
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return err
+	}
+	return os.WriteFile(path, []byte(content), 0644)
 }
 
 // defaultShell 根据操作系统返回默认 shell

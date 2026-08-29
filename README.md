@@ -179,7 +179,7 @@
 
 ### 方式一：下载预编译二进制（推荐）
 
-每个版本都会在 [Releases](https://github.com/mBigFish/MayFly/releases) 中提供各平台编译好的二进制，**下载解压后即可运行，无需安装 Go 环境**。
+每个版本都会在 [Releases](https://github.com/mBigFish/MayFly/releases) 中提供各平台编译好的二进制，**下载解压后即可运行，无需安装 Go 环境**。前端页面与脚本模板已在编译时通过 `go:embed` 嵌入二进制，单文件即可运行，无需额外目录。
 
 **1. 确认自己的系统与架构**
 
@@ -214,17 +214,15 @@ unzip mayfly-linux-amd64.zip && cd mayfly-linux-amd64
 
 也可以直接到 [Releases 页面](https://github.com/mBigFish/MayFly/releases) 手动下载。
 
-解压后的目录结构：
+解压后的目录结构（单文件即可运行）：
 
 ```
 mayfly-linux-amd64/
-├── mayfly              #（Windows 为 mayfly.exe）
-├── web/                # 前端页面，必须保留
-├── payloads/           # WebShell 脚本模板，必须保留
+├── mayfly              #（Windows 为 mayfly.exe）前端已内置，无需其他目录
 └── config/config.yaml  # 可选，留空则使用默认值
 ```
 
-> ⚠️ `mayfly` 会读取**当前工作目录**下的 `web/` 和 `payloads/`，请勿把二进制单独拷走，必须整目录解压后在该目录内启动。
+> 💡 前端页面（`web/`）与脚本模板（`payloads/`）已在编译时通过 `go:embed` 嵌入二进制，直接运行 `mayfly` 即可，**可单独拷走二进制**，无需携带任何附属目录。仅当你需要自定义 `server_port`、`shell` 等配置时才保留 `config/`。
 
 **3. 运行**
 
@@ -262,7 +260,7 @@ Windows 也可直接双击 `mayfly.exe` 启动；若保留了仓库中的 `start
 | macOS | 提示「无法打开，因为无法验证开发者」 | 执行 `xattr -d com.apple.quarantine ./mayfly`，或在「系统设置 → 隐私与安全性」中点击「仍要打开」 |
 | Linux / macOS | `Permission denied` | 执行 `chmod +x ./mayfly` |
 | Windows | SmartScreen 蓝色拦截窗口 | 点击「更多信息」→「仍要运行」 |
-| 全部 | 页面空白 / 样式丢失 / 获取脚本失败 | 确认在解压目录下启动，`web/` 与 `payloads/` 与二进制同级 |
+| 全部 | 页面空白 / 样式丢失 / 获取脚本失败 | 前端已内置，多为浏览器缓存导致，尝试 Ctrl/Cmd+Shift+R 强刷；或检查端口是否被占用、日志有无报错 |
 
 > ⚠️ 首次运行前请务必修改默认密码与 JWT 密钥，详见 [安全注意事项](#安全注意事项)。
 
@@ -391,7 +389,7 @@ Mayfly/
 ├── config/
 │   ├── config.go                    # 配置管理（环境变量 + YAML）
 │   └── config.yaml                  # 配置文件
-├── payloads/                        # WebShell 服务端脚本模板
+├── payloads/                        # WebShell 服务端脚本模板（编译时通过 go:embed 嵌入二进制）
 │   ├── shell.php
 │   ├── shell.jsp
 │   ├── shell.aspx
@@ -425,7 +423,7 @@ Mayfly/
 │   └── store/
 │       ├── store.go                 # 节点数据持久化
 │       └── cmd_history.go           # 命令历史持久化
-├── web/
+├── web/                            # 前端页面（编译时通过 go:embed 嵌入二进制）
 │   ├── index.html                   # 管理端主界面
 │   ├── login.html                   # 登录页
 │   └── static/

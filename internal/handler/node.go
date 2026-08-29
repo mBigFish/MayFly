@@ -4,9 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/hex"
+	"io/fs"
 	"net/http"
-	"os"
-	"path/filepath"
 	"strings"
 	"time"
 
@@ -21,11 +20,12 @@ import (
 type NodeHandler struct {
 	store      *store.Store
 	cmdHistory *store.CmdHistoryStore
+	payloadsFS fs.FS
 }
 
 // NewNodeHandler 创建 NodeHandler
-func NewNodeHandler(s *store.Store, h *store.CmdHistoryStore) *NodeHandler {
-	return &NodeHandler{store: s, cmdHistory: h}
+func NewNodeHandler(s *store.Store, h *store.CmdHistoryStore, payloads fs.FS) *NodeHandler {
+	return &NodeHandler{store: s, cmdHistory: h, payloadsFS: payloads}
 }
 
 func genID() string {
@@ -369,16 +369,10 @@ func (h *NodeHandler) GetScript(c *gin.Context) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "不支持的类型: " + lang})
 		return
 	}
-	data, err := os.ReadFile(filepath.Join("payloads", fname))
+	data, err := fs.ReadFile(h.payloadsFS, fname)
 	if err != nil {
-		// 尝试相对可执行文件目录
-		if exe, e2 := os.Executable(); e2 == nil {
-			data, err = os.ReadFile(filepath.Join(filepath.Dir(exe), "payloads", fname))
-		}
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"error": "读取脚本模板失败: " + err.Error()})
-			return
-		}
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "读取脚本模板失败: " + err.Error()})
+		return
 	}
 	content := string(data)
 	if password != "" {
