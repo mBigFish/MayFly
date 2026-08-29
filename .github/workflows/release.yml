@@ -1,0 +1,87 @@
+name: Release
+
+# 打 v* 标签（如 v1.0.3）并 push 时，自动交叉编译全平台并发布到 GitHub Release
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build ${{ matrix.goos }}/${{ matrix.goarch }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - goos: linux
+            goarch: amd64
+          - goos: linux
+            goarch: arm64
+          - goos: darwin
+            goarch: amd64
+          - goos: darwin
+            goarch: arm64
+          - goos: windows
+            goarch: amd64
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.21'
+
+      - name: Build
+        env:
+          GOOS: ${{ matrix.goos }}
+          GOARCH: ${{ matrix.goarch }}
+          CGO_ENABLED: '0'
+        run: |
+          BIN=mayfly
+          if [ "$GOOS" = "windows" ]; then BIN=mayfly.exe; fi
+          DIR=dist/mayfly-$GOOS-$GOARCH
+          mkdir -p "$DIR/config"
+          # 前端(web/)与脚本模板(payloads/)已通过 go:embed 编译进二进制，无需附带目录
+          go build -ldflags="-s -w" -o "$DIR/$BIN" .
+          cp config/config.yaml "$DIR/config/config.yaml"
+          # 非 Windows 平台本地终端默认使用 bash
+          if [ "$GOOS" != "windows" ]; then
+            sed -i 's/shell: "powershell.exe"/shell: "bash"/' "$DIR/config/config.yaml"
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: mayfly-${{ matrix.goos }}-${{ matrix.goarch }}
+          path: dist/mayfly-${{ matrix.goos }}-${{ matrix.goarch }}
+
+  release:
+    name: Create GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: false
+
+      - name: Package into zips
+        run: |
+          cd artifacts
+          for d in mayfly-*; do
+            [ -d "$d" ] && zip -r "$d.zip" "$d"
+          done
+
+      - name: Publish to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: artifacts/*.zip
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
