@@ -132,7 +132,7 @@
 
 ### 其他特性
 
-- **多主题切换** — 毛玻璃 / 玻璃 / 黑夜三种主题，本地持久化
+- **多主题切换** — 系统默认 / 白天玻璃 / 黑夜玻璃三种主题，本地缓存并同步到服务端 `data/settings.json`，换设备登录自动恢复；终端配色随主题联动
 - **本地 WebSSH 终端** — 管理端本身可提供本地 Shell 终端（跨平台 PTY）
 - **敏感字段加密** — SSH 服务器密码/私钥使用 AES-256-GCM 加密存储
 - **JWT 认证** — 登录鉴权，Token 过期自动跳转
@@ -141,7 +141,23 @@
 
 ## 截图预览
 
-> 可在项目根目录查看 `node-panel-new-style.png` 了解界面风格
+> 截图统一存放在 [`docs/screenshots/`](docs/screenshots) 目录。
+
+| 登录页 | 仪表盘 |
+|:---:|:---:|
+| <img src="docs/screenshots/login.png" width="100%"> | <img src="docs/screenshots/dashboard.png" width="100%"> |
+
+| 节点面板 | 文件管理 |
+|:---:|:---:|
+| <img src="docs/screenshots/node-panel.png" width="100%"> | <img src="docs/screenshots/file-manager.png" width="100%"> |
+
+| 命令执行 | 交互终端（WebShell 虚拟终端） |
+|:---:|:---:|
+| <img src="docs/screenshots/command-exec.png" width="100%"> | <img src="docs/screenshots/terminal-webshell.png" width="100%"> |
+
+| 终端操作（SSH 服务器终端） | 反弹 Shell |
+|:---:|:---:|
+| <img src="docs/screenshots/terminal-ssh.png" width="100%"> | <img src="docs/screenshots/reverse-shell.png" width="100%"> |
 
 ## 安装
 
@@ -401,6 +417,8 @@ Mayfly/
 │       └── js/
 │           ├── app.js               # 前端主逻辑
 │           └── login.js             # 登录页逻辑
+├── docs/
+│   └── screenshots/                 # 说明文档截图
 ├── Dockerfile                       # 多阶段构建
 ├── docker-compose.yaml              # 容器编排
 ├── .dockerignore
