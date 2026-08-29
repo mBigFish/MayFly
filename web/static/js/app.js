@@ -260,14 +260,21 @@ async function restoreSrvTerms() {
     });
 }
 
+// 渲染面包屑：已选中节点时显示节点名，否则显示「未选择节点」
+function renderBreadcrumb() {
+    const n = state.currentNode;
+    document.querySelector('.breadcrumb').innerHTML = n
+        ? '节点列表 / <span id="currentNodeTitle"><span class="type-badge type-' + n.type + '">' + n.type.toUpperCase() + '</span> ' + escapeHtml(n.name) + '</span>'
+        : '节点列表 / <span id="currentNodeTitle"><span class="muted">未选择节点</span></span>';
+}
+
 function selectNode(node) {
     delete state.clearedNodes[node.id]; // 重新进入节点列表
     state.currentNode = node;
     state.filePath = '';
     state.editingFile = null;
     document.getElementById('fileEditor').classList.add('hidden');
-    document.getElementById('currentNodeTitle').innerHTML =
-        '<span class="type-badge type-' + node.type + '">' + node.type.toUpperCase() + '</span> ' + escapeHtml(node.name);
+    renderBreadcrumb();
     renderNodeList();
     updatePanelsForNode();
     persistUI();
@@ -445,6 +452,7 @@ function renderConnList() {
                         ${testTime ? `<span class="conn-test-time"><i class="fas fa-clock"></i>${testTime}</span>` : ''}
                     </div>
                     <div class="conn-item-actions">
+                        <button class="conn-mini-btn connect-btn" title="连接此节点（进入文件管理）"><i class="fas fa-link"></i></button>
                         <button class="conn-mini-btn test-single-btn" title="测试此连接"><i class="fas fa-plug"></i></button>
                         <button class="conn-mini-btn edit-node-btn" title="编辑"><i class="fas fa-edit"></i></button>
                         <button class="conn-mini-btn danger del-node-btn" title="删除"><i class="fas fa-trash"></i></button>
@@ -454,17 +462,11 @@ function renderConnList() {
                 ${st.info && st.status === 'ok' ? `<div style="font-size:11px;color:var(--text-muted);word-break:break-all;">${escapeHtml(st.info)}</div>` : ''}
             `;
             // 事件绑定
+            item.querySelector('.connect-btn').onclick = (e) => { e.stopPropagation(); connectNode(n); };
             item.querySelector('.test-single-btn').onclick = (e) => { e.stopPropagation(); testSingleConn(n.id); };
             item.querySelector('.edit-node-btn').onclick = (e) => { e.stopPropagation(); showNodeModal(n); };
             item.querySelector('.del-node-btn').onclick = (e) => { e.stopPropagation(); deleteConnNode(n); };
-            item.onclick = () => {
-                if (st.status === 'ok') {
-                    selectNode(n);
-                    switchTab('file');
-                } else {
-                    toast('该节点未连通，请先测试', 'warning');
-                }
-            };
+            item.onclick = () => connectNode(n);
             body.appendChild(item);
         });
         groupEl.appendChild(body);
@@ -507,6 +509,20 @@ async function batchTest(ids) {
     toast(`测试完成: ${okCount} 成功, ${failCount} 失败`, okCount > 0 ? 'success' : 'error');
 }
 
+// 连接节点：未连通时先发起测试，成功后自动进入文件管理
+async function connectNode(node) {
+    if (getConnStatus(node.id).status !== 'ok') {
+        toast(`正在连接「${node.name}」...`, 'info');
+        await testSingleConn(node.id);
+        if (getConnStatus(node.id).status !== 'ok') {
+            toast('连接失败，请检查脚本地址与连接密码', 'error');
+            return;
+        }
+    }
+    selectNode(node);
+    switchTab('file');
+}
+
 async function testSingleConn(nodeId) {
     state.connStatus[nodeId] = { status: 'testing', message: '', info: '' };
     renderConnList();
@@ -546,7 +562,7 @@ function switchTab(tab) {
     document.getElementById('serverTermView').classList.add('hidden');
     document.getElementById('systemView').classList.add('hidden');
     document.getElementById('headerSearchWrap').style.display = '';
-    document.querySelector('.breadcrumb').innerHTML = '节点列表 / <span id="currentNodeTitle"><span class="muted">未选择节点</span></span>';
+    renderBreadcrumb();
     document.querySelectorAll('.tab-panel').forEach((p) => p.classList.remove('active'));
     document.getElementById('panel-' + tab).classList.add('active');
     renderNodeList();

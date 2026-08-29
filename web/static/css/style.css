@@ -3640,6 +3640,24 @@ html[data-theme="dark"] .rs-payload-copy-btn:hover {
     box-shadow: 0 0 0 2px var(--primary-light);
 }
 
+/* ===== 连接列表：连接按钮（主色高亮，便于新用户发现） ===== */
+.conn-mini-btn.connect-btn {
+    color: var(--primary);
+    background: var(--primary-light, rgba(49, 109, 202, 0.12));
+    border-color: rgba(49, 109, 202, 0.3);
+}
+.conn-mini-btn.connect-btn:hover,
+html[data-theme="glass"] .conn-mini-btn.connect-btn:hover,
+html[data-theme="dark"] .conn-mini-btn.connect-btn:hover {
+    color: #fff;
+    background: var(--primary);
+    border-color: var(--primary);
+}
+html[data-theme="glass"] .conn-mini-btn.connect-btn {
+    background: var(--primary-light, rgba(49, 109, 202, 0.12));
+    border-color: rgba(49, 109, 202, 0.35);
+}
+
 /* 系统管理响应式 */
 @media (max-width: 1200px) {
     .sys-stat-grid { grid-template-columns: repeat(3, 1fr); }
